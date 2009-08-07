@@ -6,6 +6,9 @@ data Type = Lump
   | Label Type
   | Fun Type Type
   | Forall Type Type
+  | Extend String
+
+newtype TypeDef = TypeDef String [(String, [(String, Type)])]
 
 data HExp = HVar String
   | HApp HExp HExp
@@ -48,3 +51,12 @@ data SExp = SVar String
   | SS Type SExp
   | SFunAbs SExp Type SExp
   | SNum Integer
+
+unlabel :: Type -> Type
+unlabel (Label t) = unlabel t
+unlabel (Fun x y) = Fun (unlabel x) (unlabel y)
+unlabel (Forall x y) = Forall (unlabel x) (unlabel y)
+unlabel x = x
+
+substType :: [TypeDef] -> Type -> Type -> Type
+substType
