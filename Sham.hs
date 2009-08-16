@@ -1,16 +1,25 @@
 module Sham where
 
+newtype EVar = EVar String deriving (Show, Eq)
+
+newtype TVar = TVar String deriving (Show, Eq)
+
+data TyField = TyField { tyfieldName :: String, tyfieldType :: Type } deriving (Eq, Show)
+
+data TyCon = TyCon { tyconName :: String, tyconFields :: [TyField] } deriving (Eq, Show)
+
+data TyDef = TyDef { tydefName :: String, tydefTypes :: [TVar], tydefCons :: [TyCon] } deriving (Eq, Show)
+
 data Type = Lump
   | Nat
-  | TyVar String
+  | TyVar TVar
   | Label Type
   | Fun Type Type
-  | Forall Type Type
-  | Extend String
+  | Forall TVar Type
+  | Ext TyDef
+  deriving (Eq, Show)
 
-newtype TypeDef = TypeDef String [(String, [(String, Type)])]
-
-data HExp = HVar String
+data HExp = HVar EVar
   | HApp HExp HExp
   | HFix HExp
   | HTyApp HExp Type
@@ -21,42 +30,28 @@ data HExp = HVar String
   | HWrong Type String
   | HM Type MExp
   | HS Type SExp
-  | HFunAbs HExp Type HExp
-  | HTyAbs Type HExp
+  | HFunAbs EVar Type HExp
+  | HTyAbs TVar HExp
   | HNum Integer
+  deriving (Eq, Show)
 
-data MExp = MVar String
-  | MApp MExp MExp
-  | MFix MExp
-  | MTyApp MExp Type
-  | MField String MExp
-  | MAdd MExp MExp
-  | MSub MExp MExp
-  | MIf0 MExp MExp MExp
-  | MWrong Type String
-  | MH Type HExp
-  | MS Type SExp
-  | MFunAbs MExp Type MExp
-  | MTyAbs Type MExp
-  | MNum Integer
+data MExp = MNum Integer
+  deriving (Eq, Show)
 
-data SExp = SVar String
-  | SApp SExp SExp
-  | SField String SExp
-  | SAdd SExp SExp
-  | SSub SExp SExp
-  | SIf0 SExp SExp SExp
-  | SWrong String
-  | SH Type HExp
-  | SS Type SExp
-  | SFunAbs SExp Type SExp
-  | SNum Integer
+data SExp = SNum Integer
+  deriving (Eq, Show)
 
 unlabel :: Type -> Type
-unlabel (Label t) = unlabel t
+unlabel (Label t) = t
 unlabel (Fun x y) = Fun (unlabel x) (unlabel y)
-unlabel (Forall x y) = Forall (unlabel x) (unlabel y)
+unlabel (Forall x y) = Forall x (unlabel y)
 unlabel x = x
 
-substType :: [TypeDef] -> Type -> Type -> Type
-substType
+substType :: Type -> Type -> Type -> Type
+substType _ _ Lump = Lump
+substType _ _ Nat = Nat
+substType new (TyVar x) (TyVar y) | x == y = new
+substType _ _ x @ (Label _) = x
+substType new old (Fun x y) = Fun (substType new old x) (substType new old y)
+substType new old @ (TyVar x) forall @ (Forall y z) | x /= y = Forall y (substType new old z)
+                                                    | otherwise = forall
