@@ -4,17 +4,12 @@ type EVar = String
 
 type TVar = String
 
---type ExpType = HExp -> Type
+data DType =
+  DType
+  deriving (Eq, Show)
 
-data TyField = TyField { tyfieldName :: String, tyfieldType :: SType } deriving (Eq, Show)
-
-data TyCon = TyCon { tyconName :: String, tyconFields :: [TyField] } deriving (Eq, Show)
-
-data TyDef = TyDef { tydefName :: String, tydefTypes :: [TVar], tydefCons :: [TyCon] } deriving (Eq, Show)
-
-data DType = DType
-
-data SType = Lump
+data SType =
+  Lump
   | Nat
   | TyVar TVar
   | Label SType
@@ -23,7 +18,57 @@ data SType = Lump
   | Ext String [SType]
   deriving (Eq, Show)
 
-data HExp = HVar EVar
+-- DContext
+
+type DContext = [(EVar, DType)]
+
+dbind :: EVar -> DType -> DContext -> DContext
+dbind v t c = (v, t) : c
+
+dbinding :: EVar -> DContext -> Maybe DType
+dbinding v e = lookup v e
+
+-- SContext
+
+type SContext = ([(EVar, SType)], [TVar])
+
+sebind :: EVar -> SType -> SContext -> SContext
+sebind v t (es, ts) = ((v, t) : es, ts)
+
+sbinding :: EVar -> SContext -> Maybe SType
+sbinding v (e, _) = lookup v e
+
+sbound :: TVar -> SContext -> Bool
+sbound v (_, t) = v `elem` t
+
+stbind :: TVar -> SContext -> SContext
+stbind t (es, ts) = (es, t : ts)
+
+newtype TyRule t =
+  TyRule ([t] -> t)
+
+data TyField =
+  TyField {
+    tyfieldName :: String,
+    tyfieldDType :: DType,
+    tyfieldSType :: SType }
+
+data TyCon =
+  TyCon {
+    tyconName :: String,
+    tyconFields :: [TyField],
+    tyconHExpType :: TyRule SType,
+    tyconMExpType :: TyRule SType,
+    tyconSExpType :: TyRule DType }
+
+data TyDef =
+  TyDef {
+    tydefName :: String,
+    tydefTypes :: [TVar],
+    tydefCons :: [TyCon] }
+
+data HExp =
+  HVar EVar
   | HApp HExp HExp
   | HFix HExp
   | HTyApp HExp SType
@@ -39,13 +84,15 @@ data HExp = HVar EVar
   | HNum Integer
   deriving (Eq, Show)
 
-data MExp = MNum Integer
+data MExp =
+  MNum Integer
   deriving (Eq, Show)
 
-data SExp = SNum Integer
+data SExp =
+  SNum Integer
   deriving (Eq, Show)
 
---hExpType :: HContext -> HExpType
+--hExpType :: HContext -> HExp -> SType
 --hExpType c (HVar x) = 
 
 unlabel :: SType -> SType
