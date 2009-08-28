@@ -43,15 +43,21 @@ data TyDef =
     tydefTypes :: Int,
     tydefCons :: [TyCon] }
 
+data HField =
+  HFieldExp HExp
+  | HFieldType SType
+  deriving (Eq, Show)
+
 data HExp =
   HAdd HExp HExp
   | HApp HExp HExp
+  | HCon String [HField]
   | HFix HExp
   | HFunAbs EVar SType HExp
+  | HField String HExp
   | HIf0 HExp HExp HExp
   | HM SType MExp
   | HNum Integer
-  | HOp String HExp
   | HS SType SExp
   | HSub HExp HExp
   | HTyAbs TVar HExp
