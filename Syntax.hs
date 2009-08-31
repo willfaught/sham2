@@ -21,9 +21,6 @@ data SType =
 newtype ConTyRule t =
   ConTyRule ([t] -> t)
 
-class Foo a b where
-  foo :: a b
-
 newtype FieldTyRule t =
   FieldTyRule (t -> t)
 
