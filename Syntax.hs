@@ -9,17 +9,20 @@ data DType =
   deriving (Eq, Show)
 
 data SType =
-  Lump
+  Ext String [SType]
+  | Forall TVar SType
+  | Fun SType SType
+  | Label SType
+  | Lump
   | Nat
   | TyVar TVar
-  | Label SType
-  | Fun SType SType
-  | Forall TVar SType
-  | Ext String [SType]
   deriving (Eq, Show)
 
 newtype ConTyRule t =
   ConTyRule ([t] -> t)
+
+class Foo a b where
+  foo :: a b
 
 newtype FieldTyRule t =
   FieldTyRule (t -> t)
@@ -43,17 +46,17 @@ data TyDef =
     tydefTypes :: Int,
     tydefCons :: [TyCon] }
 
-data HField =
-  HFieldExp HExp
-  | HFieldType SType
+data Field e =
+  FieldExp e
+  | FieldType SType
   deriving (Eq, Show)
 
 data HExp =
   HAdd HExp HExp
-  | HApp HExp HExp
-  | HCon String [HField]
+  | HCon String [Field HExp]
   | HFix HExp
   | HFunAbs EVar SType HExp
+  | HFunApp HExp HExp
   | HField String HExp
   | HIf0 HExp HExp HExp
   | HM SType MExp
