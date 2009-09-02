@@ -18,11 +18,9 @@ data SType =
   | TyVar TVar
   deriving (Eq, Show)
 
-newtype ConTyRule t =
-  ConTyRule ([t] -> t)
+type ConTyRule t = [t] -> t
 
-newtype FieldTyRule t =
-  FieldTyRule (t -> t)
+type FieldTyRule t = t -> t
 
 data TyField =
   TyField {
