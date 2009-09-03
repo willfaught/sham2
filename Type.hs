@@ -44,11 +44,12 @@ checkH :: [TyDef] -> SContext -> HExp -> Maybe SType
 checkH d c (HAdd x y) = do
   xt <- checkH d c x
   yt <- checkH d c y
-  if xt == Nat && yt == Nat then return Nat else Nothing
+  assert (xt == Nat && yt == Nat)
+  return Nat
 checkH d c (HCon n1 f1) = do
-  let match x @ (TyCon n2 _ _ _) = if n1 == n2 then Just x else Nothing
-  let con (TyDef _ _ c) = map match c
-  TyCon _ f2 _ s <- fromJust $ find isJust $ concat $ map con d
+  let con x @ (TyCon n2 _ _ _) = if n1 == n2 then Just x else Nothing
+  let def (TyDef _ _ c) = map con c
+  TyCon _ f2 _ s <- fromJust $ find isJust $ concat $ map def d
   assert (length f1 == length f2)
   let fieldType (FieldExp x) = checkH d c x
       fieldType (FieldType x) = do
@@ -71,17 +72,29 @@ checkH d c (HFunApp x y) = do
   opr <- checkH d c x
   opd <- checkH d c y
   case opr of
-    Fun p b -> if p == opd then Just b else Nothing
+    Fun p b -> do
+      assert (p == opd)
+      return b
     _ -> Nothing
---checkH d c (HField ...
+checkH d c (HField n1 e) = do
+  let field x @ (TyField (Just n2) _ _) = if n1 == n2 then Just x else Nothing
+  let field (TyField Nothing _ _) = Nothing
+  let con (TyCon _ f _ _) = map field f
+  let def (TyDef _ _ c) = map con c
+  TyField _ _ s <- fromJust $ find isJust $ concat $ concat $ map def d
+  t <- checkH d c e
+  return $ s t
 checkH d c (HIf0 g t f) = do
   gt <- checkH d c g
   tt <- checkH d c t
   ft <- checkH d c f
-  if gt == Nat && tt == ft then Just tt else Nothing
+  assert (gt == Nat && tt == ft)
+  return tt
 checkH d c (HM t m) = do
+  assert (closed t)
   u <- checkM d c m
-  if t == u then Just t else Nothing
+  assert (t == u)
+  return t
 checkH _ _ (HNum _) = Just Nat
 -- ...
 
