@@ -1,47 +1,39 @@
 module Context (
-  DContext(),
-  SContext(),
+  Context(),
+  empty,
   dbind,
-  dbinding,
-  dempty,
   sebind,
-  sempty,
+  stbind,
+  dbinding,
   sbinding,
-  sbound,
-  stbind)
+  sbound)
   where
 
 import Syntax
 
-newtype DContext =
-  DContext
-    [(EVar, DType)]
+data Context =
+  Context {
+    dynExp :: [(EVar, DType)],
+    statExp :: [(EVar, SType)],
+    statType :: [TVar] }
   deriving (Eq, Show)
 
-dbind :: EVar -> DType -> DContext -> DContext
-dbind v t (DContext b) = DContext ((v, t) : b)
+empty = Context [] [] []
 
-dbinding :: EVar -> DContext -> Maybe DType
-dbinding v (DContext b) = lookup v b
+dbind :: EVar -> DType -> Context -> Context
+dbind v t x @ (Context b _ _) = x { dynExp = (v, t) : b }
 
-dempty = DContext []
+sebind :: EVar -> SType -> Context -> Context
+sebind v t x @ (Context _ es ts) = x { statExp = (v, t) : es }
 
-data SContext =
-  SContext
-    [(EVar, SType)]
-    [TVar]
-  deriving (Eq, Show)
+stbind :: TVar -> Context -> Context
+stbind t x @ (Context _ _ ts) = x { statType = t : ts }
 
-sebind :: EVar -> SType -> SContext -> SContext
-sebind v t (SContext es ts) = SContext ((v, t) : es) ts
+dbinding :: EVar -> Context -> Maybe DType
+dbinding v (Context b _ _) = lookup v b
 
-sempty = SContext [] []
+sbinding :: EVar -> Context -> Maybe SType
+sbinding v (Context _ e _) = lookup v e
 
-sbinding :: EVar -> SContext -> Maybe SType
-sbinding v (SContext e _) = lookup v e
-
-sbound :: TVar -> SContext -> Bool
-sbound v (SContext _ t) = v `elem` t
-
-stbind :: TVar -> SContext -> SContext
-stbind t (SContext es ts) = SContext es (t : ts)
+sbound :: TVar -> Context -> Bool
+sbound v (Context _ _ t) = v `elem` t

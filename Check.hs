@@ -96,7 +96,9 @@ checkH d c (HM t m) = do
   assert (t == u)
   return t
 checkH _ _ (HNum _) = Just Nat
--- ...
+checkH d c (HS t s) = do
+  assert (closed t)
+  u <- checkS d dempty
 
 checkM :: [TyDef] -> SContext -> MExp -> Maybe SType
 checkM _ _ = undefined
