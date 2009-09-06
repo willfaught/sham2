@@ -1,4 +1,4 @@
-module Type (
+module Check (
   checkH,
   checkM,
   checkS)
@@ -16,19 +16,18 @@ unlabel (Forall x y) = Forall x (unlabel y)
 unlabel x = x
 
 substType :: SType -> SType -> SType -> SType
+substType new old (Ext n t) = Ext n $ map (substType new old) t
+substType new old @ (TyVar x) forall @ (Forall y z) | x /= y = Forall y (substType new old z)
+                                                    | otherwise = forall
+substType new old (Fun x y) = Fun (substType new old x) (substType new old y)
+substType _ _ x @ (Label _) = x
 substType _ _ Lump = Lump
 substType _ _ Nat = Nat
 substType new (TyVar x) (TyVar y) | x == y = new
-substType _ _ x @ (Label _) = x
-substType new old (Fun x y) = Fun (substType new old x) (substType new old y)
-substType new old @ (TyVar x) forall @ (Forall y z) | x /= y = Forall y (substType new old z)
-                                                    | otherwise = forall
---don't forget about Ext!
 
 closed :: SType -> Bool
-closed t = go sempty t
-  where go :: SContext -> SType -> Bool
-        go c Lump = True
+closed t = go empty t
+  where go c Lump = True
         go c Nat = True
         go c (TyVar x) = sbound x c
         go c (Label x) = go c x
@@ -40,7 +39,7 @@ assert :: Bool -> Maybe Bool
 assert True = Just True
 assert False = Nothing
 
-checkH :: [TyDef] -> SContext -> HExp -> Maybe SType
+checkH :: [TyDef] -> Context -> HExp -> Maybe SType
 checkH d c (HAdd x y) = do
   xt <- checkH d c x
   yt <- checkH d c y
@@ -96,12 +95,30 @@ checkH d c (HM t m) = do
   assert (t == u)
   return t
 checkH _ _ (HNum _) = Just Nat
-checkH d c (HS t s) = do
+checkH d c (HS t e) = do
   assert (closed t)
-  u <- checkS d dempty
+  checkS d c e
+  return t
+checkH d c (HSub x y) = do
+  t <- checkH d c x
+  assert (t == Nat)
+  u <- checkH d c y
+  assert (u == Nat)
+  return Nat
+checkH d c (HTyAbs v e) = do
+  t <- checkH d (stbind v c) e
+  return (Forall v t)
+checkH d c (HTyApp e t) = do
+  assert (closed t)
+  Forall v u <- checkH d c e
+  return $ substType t (TyVar v) u
+checkH _ c (HVar v) = sbinding v c
+checkH d c (HWrong t s) = do
+  assert (closed t)
+  return t
 
-checkM :: [TyDef] -> SContext -> MExp -> Maybe SType
+checkM :: [TyDef] -> Context -> MExp -> Maybe SType
 checkM _ _ = undefined
 
-checkS :: [TyDef] -> DContext -> SExp -> Maybe DType
+checkS :: [TyDef] -> Context -> SExp -> Maybe DType
 checkS _ _ = undefined
