@@ -9,12 +9,6 @@ import Data.List (find)
 import Data.Maybe (fromJust, isJust)
 import Syntax
 
-unlabel :: SType -> SType
-unlabel (Label t) = t
-unlabel (Fun x y) = Fun (unlabel x) (unlabel y)
-unlabel (Forall x y) = Forall x (unlabel y)
-unlabel x = x
-
 substType :: SType -> SType -> SType -> SType
 substType new old (Ext n t) = Ext n $ map (substType new old) t
 substType new old @ (TyVar x) forall @ (Forall y z) | x /= y = Forall y (substType new old z)
@@ -41,32 +35,32 @@ assert False = Nothing
 
 checkH :: [TyDef] -> Context -> HExp -> Maybe SType
 checkH d c (HAdd x y) = do
-  xt <- checkH d c x
-  yt <- checkH d c y
-  assert (xt == Nat && yt == Nat)
+  t <- checkH d c x
+  u <- checkH d c y
+  assert (t == Nat && u == Nat)
   return Nat
-checkH d c (HCon n1 f1) = do
-  let con x @ (TyCon n2 _ _ _) = if n1 == n2 then Just x else Nothing
-  let def (TyDef _ _ c) = map con c
-  TyCon _ f2 _ s <- fromJust $ find isJust $ concat $ map def d
+checkH d c (HCon n f1) = do -- need to unify tyvars here to determine type params for con's type
+  TyCon _ f2 _ s <- tycon n d
   assert (length f1 == length f2)
   let fieldType (FieldExp x) = checkH d c x
       fieldType (FieldType x) = do
         assert (closed x)
         return x
   t <- sequence $ map fieldType f1
-  return $ s t
+  TyDef _ a _ <- condef n d
+  assert (a == 
+  let e @ (Ext _ a) = s t
+  assert (length a == 
+  return e
 checkH d c (HFix x) = do
   t <- checkH d c x
   case t of
     Fun p b -> Just p
     _ -> Nothing
-checkH d c (HFunAbs v p e) =
-  if closed p
-  then do
-    b <- checkH d (sebind v p c) e
-    return (Fun p b)
-  else Nothing
+checkH d c (HFunAbs v p e) = do
+  assert (closed p)
+  b <- checkH d (sebind v p c) e
+  return (Fun p b)
 checkH d c (HFunApp x y) = do
   opr <- checkH d c x
   opd <- checkH d c y
@@ -75,12 +69,8 @@ checkH d c (HFunApp x y) = do
       assert (p == opd)
       return b
     _ -> Nothing
-checkH d c (HField n1 e) = do
-  let field x @ (TyField (Just n2) _ _) = if n1 == n2 then Just x else Nothing
-  let field (TyField Nothing _ _) = Nothing
-  let con (TyCon _ f _ _) = map field f
-  let def (TyDef _ _ c) = map con c
-  TyField _ _ s <- fromJust $ find isJust $ concat $ concat $ map def d
+checkH d c (HField n e) = do
+  TyField _ _ s <- tyfield n d
   t <- checkH d c e
   return $ s t
 checkH d c (HIf0 g t f) = do

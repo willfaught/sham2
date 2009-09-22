@@ -23,27 +23,20 @@ data SType =
   | TyVar TVar
   deriving (Eq, Show)
 
-type ConTyRule t = [t] -> t
-
-type FieldTyRule t = t -> t
-
 data TyField =
   TyField {
     tyfieldName :: Maybe Name,
-    tyfieldDTyRule :: FieldTyRule DType,
-    tyfieldSTyRule :: FieldTyRule SType }
+    tyfieldType :: SType }
 
 data TyCon =
   TyCon {
     tyconName :: Name,
-    tyconFields :: [TyField],
-    tyconDTyRule :: ConTyRule DType,
-    tyconSTyRule :: ConTyRule SType }
+    tyconFields :: [TyField] }
 
 data TyDef =
   TyDef {
     tydefName :: Name,
-    tydefArity :: Int,
+    tydefVars :: [TVar],
     tydefCons :: [TyCon] }
 
 type TyDefs = [TyDef]
@@ -58,8 +51,8 @@ tyfield :: Name -> TyDefs -> Maybe TyField
 tyfield n1 = fromJust . find isJust . concat . map def where
   def = map con . tydefCons 
   con = find match . tyconFields
-  match (TyField (Just n2) _ _) = n1 == n2
-  match (TyField Nothing _ _) = False
+  match (TyField (Just n2) _) = n1 == n2
+  match (TyField Nothing _) = False
 
 condef :: Name -> TyDefs -> Maybe TyDef
 condef n = find $ any ((==) n . tyconName) . tydefCons
@@ -68,8 +61,8 @@ fieldcon :: Name -> TyDefs -> Maybe TyCon
 fieldcon n1 = fromJust . find isJust . map def where
   def = find con . tydefCons
   con = any field . tyconFields
-  field (TyField (Just n2) _ _) = n1 == n2
-  field (TyField Nothing _ _) = False
+  field (TyField (Just n2) _) = n1 == n2
+  field (TyField Nothing _) = False
 
 data Field e =
   FieldExp e
