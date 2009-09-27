@@ -18,31 +18,38 @@ valueH (HNum _) = True
 valueH (HTyAbs _ _) = True
 valueH _ = False
 
-{-contextH :: HExp -> Maybe HExp
-contextH x @ (HFunApp (HFunAbs _ _ _) _) = reduceH d x
-contextH (HFunApp x y) = do
-  x' <- contextH d x
-  reduceH $ HFunApp x' y
-contextH _ = Nothing-}
-
 reduceH :: HExp -> Maybe HExp
-reduceH (HAdd (HNum x) (HNum y)) = Just . HNum $ x + y
-reduceH f @ (HFix (HFunAbs v _ b)) = Just $ substExpH f v b
-reduceH (HFunApp (HFunAbs v t b) a) = Just $ substExpH a v b
+reduceH (HAdd (HNum x) (HNum y)) = return . HNum $ x + y
+reduceH (HAdd x y) | not $ valueH x = do
+  x' <- reduceH x
+  return $ HAdd x' y
+reduceH (HAdd x y) = do
+  y' <- reduceH y
+  return $ HAdd x y'
+reduceH f @ (HFix (HFunAbs v _ b)) = return $ substExpH f v b
+reduceH (HFix x) = do
+  x' <- reduceH x
+  return $ HFix x'
+reduceH (HFunApp (HFunAbs v t b) a) = return $ substExpH a v b
+reduceH (HFunApp x y) = do
+  x' <- reduceH x
+  return $ HFunApp x' y
 --reduceH (HField fn (HCon cn f)) = 
 reduceH (HIf0 (HNum 0) t _) = Just t
 reduceH (HIf0 (HNum _) _ f) = Just f
+reduceH (HIf0 x t f) = do
+  x' <- reduceH x
+  return $ HIf0 x' t f
 reduceH (HSub (HNum x) (HNum y)) = Just . HNum $ x + y
-reduceH (HTyApp (HTyAbs v b) t) = Just $ substTyExpH t v b
+reduceH (HSub x y) | not $ valueH x = do
+  x' <- reduceH x
+  return $ HSub x' y
+reduceH (HSub x y) = do
+  y' <- reduceH y
+  return $ HSub x y'
+reduceH (HTyApp (HTyAbs v b) t) = return $ substTyExpH t v b
+reduceH (HTyApp x y) = do
+  x' <- reduceH x
+  return $ HTyApp x' y
 reduceH (HWrong _ s) = error s
 reduceH _ = Nothing
-
-
-
-
-{-reduceH _ (HAdd (HNum x) (HNum y)) = do
-  return . HNum $ x + y
-reduce d (HAdd x @ (HNum _) y) = do
-  return $ HAdd x $ reduceH d y
-reduceH d (HAdd x y @ (HNum _)) = do
-  return (HAdd (reduceH d x) y)-}
