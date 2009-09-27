@@ -18,6 +18,11 @@ valueH (HNum _) = True
 valueH (HTyAbs _ _) = True
 valueH _ = False
 
+reduceFullH :: HExp -> HExp
+reduceFullH x = case reduceH x of
+  Just x' -> reduceFullH x'
+  Nothing -> x
+
 reduceH :: HExp -> Maybe HExp
 reduceH (HAdd (HNum x) (HNum y)) = return . HNum $ x + y
 reduceH (HAdd x y) | not $ valueH x = do
