@@ -2,6 +2,7 @@ module Reduce (
   reduceH)
   where
 
+import Subst
 import Syntax
 
 unlabel :: SType -> SType
@@ -26,13 +27,13 @@ contextH _ = Nothing-}
 
 reduceH :: HExp -> Maybe HExp
 reduceH (HAdd (HNum x) (HNum y)) = Just . HNum $ x + y
-reduceH f @ (HFix (HFunAbs v _ b)) = Just $ substType f (HVar v) b
-reduceH (HFunApp (HFunAbs v t b) a) = Just $ substExpExpH a (HVar v) b
+reduceH f @ (HFix (HFunAbs v _ b)) = Just $ substExpH f v b
+reduceH (HFunApp (HFunAbs v t b) a) = Just $ substExpH a v b
 --reduceH (HField fn (HCon cn f)) = 
-reduceH (HIf0 (HNum 0) t _) = t
-reduceH (HIf0 (HNum _) _ f) = f
+reduceH (HIf0 (HNum 0) t _) = Just t
+reduceH (HIf0 (HNum _) _ f) = Just f
 reduceH (HSub (HNum x) (HNum y)) = Just . HNum $ x + y
-reduceH (HTyApp (HTyAbs v b) t) = substTyExpH t v b
+reduceH (HTyApp (HTyAbs v b) t) = Just $ substTyExpH t v b
 reduceH (HWrong _ s) = error s
 reduceH _ = Nothing
 
