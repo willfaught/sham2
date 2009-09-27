@@ -1,23 +1,12 @@
 module Check (
-  checkH,
-  checkM,
-  checkS)
+  checkH)
   where
 
 import Context
 import Data.List (find)
 import Data.Maybe (fromJust, isJust)
+import Subst
 import Syntax
-
-substType :: SType -> SType -> SType -> SType
-substType new old (Ext n t) = Ext n $ map (substType new old) t
-substType new old @ (TyVar x) forall @ (Forall y z) | x /= y = Forall y (substType new old z)
-                                                    | otherwise = forall
-substType new old (Fun x y) = Fun (substType new old x) (substType new old y)
-substType _ _ x @ (Label _) = x
-substType _ _ Lump = Lump
-substType _ _ Nat = Nat
-substType new (TyVar x) (TyVar y) | x == y = new
 
 closed :: SType -> Bool
 closed t = go empty t
@@ -27,22 +16,22 @@ closed t = go empty t
         go c (Label x) = go c x
         go c (Fun x y) = go c x && go c y
         go c (Forall x y) = go (stbind x c) y
-        go c (Ext _ x) = and (map (go c) x)
+        --go c (Ext _ x) = and (map (go c) x)
 
 assert :: Bool -> Maybe Bool
 assert True = Just True
 assert False = Nothing
 
-checkH :: [TyDef] -> Context -> HExp -> Maybe SType
-checkH d c (HAdd x y) = do
-  t <- checkH d c x
-  u <- checkH d c y
+checkH :: Context -> HExp -> Maybe SType
+checkH c (HAdd x y) = do
+  t <- checkH c x
+  u <- checkH c y
   assert (t == Nat && u == Nat)
   return Nat
-checkH d c (HCon n f1) = do -- need to unify tyvars here to determine type params for con's type
+{-checkH c (HCon n f1) = do -- need to unify tyvars here to determine type params for con's type
   TyCon _ f2 _ s <- tycon n d
   assert (length f1 == length f2)
-  let fieldType (FieldExp x) = checkH d c x
+  let fieldType (FieldExp x) = checkH c x
       fieldType (FieldType x) = do
         assert (closed x)
         return x
@@ -51,64 +40,64 @@ checkH d c (HCon n f1) = do -- need to unify tyvars here to determine type param
   assert (a == 
   let e @ (Ext _ a) = s t
   assert (length a == 
-  return e
-checkH d c (HFix x) = do
-  t <- checkH d c x
+  return e-}
+checkH c (HFix x) = do
+  t <- checkH c x
   case t of
     Fun p b -> Just p
     _ -> Nothing
-checkH d c (HFunAbs v p e) = do
+checkH c (HFunAbs v p e) = do
   assert (closed p)
-  b <- checkH d (sebind v p c) e
+  b <- checkH (sebind v p c) e
   return (Fun p b)
-checkH d c (HFunApp x y) = do
-  opr <- checkH d c x
-  opd <- checkH d c y
+checkH c (HFunApp x y) = do
+  opr <- checkH c x
+  opd <- checkH c y
   case opr of
     Fun p b -> do
       assert (p == opd)
       return b
     _ -> Nothing
-checkH d c (HField n e) = do
+{-checkH c (HField n e) = do
   TyField _ _ s <- tyfield n d
-  t <- checkH d c e
-  return $ s t
-checkH d c (HIf0 g t f) = do
-  gt <- checkH d c g
-  tt <- checkH d c t
-  ft <- checkH d c f
+  t <- checkH c e
+  return $ s t-}
+checkH c (HIf0 g t f) = do
+  gt <- checkH c g
+  tt <- checkH c t
+  ft <- checkH c f
   assert (gt == Nat && tt == ft)
   return tt
-checkH d c (HM t m) = do
+{-checkH c (HM t m) = do
   assert (closed t)
   u <- checkM d c m
   assert (t == u)
-  return t
-checkH _ _ (HNum _) = Just Nat
-checkH d c (HS t e) = do
+  return t-}
+checkH _ (HNum _) = Just Nat
+{-checkH c (HS t e) = do
   assert (closed t)
   checkS d c e
-  return t
-checkH d c (HSub x y) = do
-  t <- checkH d c x
+  return t-}
+checkH c (HSub x y) = do
+  t <- checkH c x
   assert (t == Nat)
-  u <- checkH d c y
+  u <- checkH c y
   assert (u == Nat)
   return Nat
-checkH d c (HTyAbs v e) = do
-  t <- checkH d (stbind v c) e
+checkH c (HTyAbs v e) = do
+  t <- checkH (stbind v c) e
   return (Forall v t)
-checkH d c (HTyApp e t) = do
+checkH c (HTyApp e t) = do
   assert (closed t)
-  Forall v u <- checkH d c e
-  return $ substType t (TyVar v) u
-checkH _ c (HVar v) = sbinding v c
-checkH d c (HWrong t s) = do
+  Forall v u <- checkH c e
+  return $ substTyForTyInTy t (TyVar v) u
+checkH c (HVar v) = sbinding v c
+checkH c (HWrong t s) = do
   assert (closed t)
   return t
 
-checkM :: [TyDef] -> Context -> MExp -> Maybe SType
+{-checkM :: [TyDef] -> Context -> MExp -> Maybe SType
 checkM _ _ = undefined
 
 checkS :: [TyDef] -> Context -> SExp -> Maybe DType
-checkS _ _ = undefined
+checkS _ _ = undefined-}
