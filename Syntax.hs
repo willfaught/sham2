@@ -14,8 +14,8 @@ data DType =
 type Name = String
 
 data SType =
-  Ext Name [SType]
-  | Forall TVar SType
+  --Ext Name [SType]
+  Forall TVar SType
   | Fun SType SType
   | Label SType
   | Lump
@@ -23,7 +23,7 @@ data SType =
   | TyVar TVar
   deriving (Eq, Show)
 
-data TyField =
+{-data TyField =
   TyField {
     tyfieldName :: Maybe Name,
     tyfieldType :: SType }
@@ -67,19 +67,19 @@ fieldcon n1 = fromJust . find isJust . map def where
 data Field e =
   FieldExp e
   | FieldType SType
-  deriving (Eq, Show)
+  deriving (Eq, Show)-}
 
 data HExp =
   HAdd HExp HExp
-  | HCon Name [Field HExp]
+  -- | HCon Name [Field HExp]
   | HFix HExp
   | HFunAbs EVar SType HExp
   | HFunApp HExp HExp
-  | HField Name HExp
+  -- | HField Name HExp
   | HIf0 HExp HExp HExp
-  | HM SType MExp
+  -- | HM SType MExp
   | HNum Integer
-  | HS SType SExp
+  -- | HS SType SExp
   | HSub HExp HExp
   | HTyAbs TVar HExp
   | HTyApp HExp SType
@@ -87,10 +87,10 @@ data HExp =
   | HWrong SType String
   deriving (Eq, Show)
 
-data MExp =
+{-data MExp =
   MNum Integer
   deriving (Eq, Show)
 
 data SExp =
   SNum Integer
-  deriving (Eq, Show)
+  deriving (Eq, Show)-}
