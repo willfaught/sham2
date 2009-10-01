@@ -4,25 +4,24 @@ import Syntax
 import Text.ParserCombinators.Parsec hiding (label)
 
 stype :: Parser SType
-stype = lump <|> nat <|> tyvar <|> forall
+stype = lump <|> nat <|> tyvar <|> forall <|> parens
 
 lump :: Parser SType
 lump = do
   char 'L'
-  (stype' Lump <|> return Lump)
+  stype' Lump
 
 nat :: Parser SType
 nat = do
   char 'N'
-  (stype' Nat <|> return Nat)
+  stype' Nat
 
 tyvar :: Parser SType
 tyvar = do
   c <- lower
   cs <- many (lower <|> digit)
   ps <- many (char '\'')
-  let x = TyVar $ c : cs ++ ps
-  ((stype' x) <|> return x)
+  stype' . TyVar $ c : cs ++ ps
 
 forall :: Parser SType
 forall = do
@@ -33,11 +32,20 @@ forall = do
   char '.'
   spaces
   b <- stype
-  let x = Forall v b
-  ((stype' $ x) <|> return x)
+  stype' $ Forall v b
+
+parens :: Parser SType
+parens = do
+  char '('
+  spaces
+  t <- stype
+  spaces
+  char ')'
+  spaces
+  stype' t
 
 stype' :: SType -> Parser SType
-stype' t = label t <|> fun t
+stype' t = label t <|> fun t <|> empty t
 
 empty :: SType -> Parser SType
 empty = return
@@ -48,8 +56,7 @@ label t = do
   char '^'
   spaces
   n <- many1 digit
-  let x = Label t (read n)
-  ((stype' $ x) <|> return x)
+  stype' $ Label t (read n)
 
 fun :: SType -> Parser SType
 fun t = do
@@ -57,8 +64,7 @@ fun t = do
   string "->"
   spaces
   u <- stype
-  let x = Fun t u
-  ((stype' $ x) <|> return x)
+  stype' $ Fun t u
 
 parseH :: String -> HExp
 parseH = undefined
