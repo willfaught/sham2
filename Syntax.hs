@@ -17,7 +17,7 @@ data SType =
   --Ext Name [SType]
   Forall TVar SType
   | Fun SType SType
-  | Label SType
+  | Label SType Int
   | Lump
   | Nat
   | TyVar TVar
