@@ -48,7 +48,7 @@ parens = do
   stype' t
 
 stype' :: SType -> Parser SType
-stype' t = try (label t) <|> fun t <|> empty t
+stype' t = try (label t) <|> try (fun t) <|> empty t
 
 empty :: SType -> Parser SType
 empty = return
