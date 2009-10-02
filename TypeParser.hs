@@ -1,10 +1,7 @@
-module TypeParser (parserT) where
+module TypeParser (stype, tvar) where
 
 import Syntax
 import Text.ParserCombinators.Parsec hiding (label)
-
-parserT :: Parser SType
-parserT = stype
 
 stype :: Parser SType
 stype = lump <|> nat <|> tyvar <|> forall <|> parens
@@ -19,12 +16,17 @@ nat = do
   char 'N'
   stype' Nat
 
-tyvar :: Parser SType
-tyvar = do
+tvar :: Parser TVar
+tvar = do
   c <- lower
   cs <- many (lower <|> digit)
   ps <- many (char '\'')
-  stype' . TyVar $ c : cs ++ ps
+  return $ c : cs ++ ps
+
+tyvar :: Parser SType
+tyvar = do
+  v <- tvar
+  stype' $ TyVar v
 
 forall :: Parser SType
 forall = do
