@@ -4,17 +4,58 @@ import Syntax
 import Text.ParserCombinators.Parsec hiding (label)
 
 stype :: Parser SType
-stype = lump <|> nat <|> tyvar <|> forall <|> parens
+stype = chainl1 stype' (fun <?> "function abstraction")
+
+stype' = do
+  t <- stype''
+  let labels = do n <- many (label <?> "label") ; return $ foldl Label t n
+  option t labels
+
+stype'' :: Parser SType
+stype'' = (forall <?> "type abstraction")
+  <|> (lump <?> "lump")
+  <|> (nat <?> "number")
+  <|> (parens <?> "parentheses")
+  <|> (tyvar <?> "type variable")
+
+forall :: Parser SType
+forall = do
+  char 'A'
+  spaces
+  v <- tvar
+  spaces
+  char '.'
+  spaces
+  b <- stype
+  return $ Forall v b
+
+fun :: Parser (SType -> SType -> SType)
+fun = do
+  spaces
+  string "->"
+  spaces
+  return Fun
+
+label :: Parser Int
+label = do
+  spaces
+  char '^'
+  spaces
+  n <- many1 digit
+  return $ read n
 
 lump :: Parser SType
 lump = do
   char 'L'
-  stype' Lump
+  return Lump
 
 nat :: Parser SType
 nat = do
   char 'N'
-  stype' Nat
+  return Nat
+
+parens :: Parser SType
+parens = between (char '(') (char ')') stype
 
 tvar :: Parser TVar
 tvar = do
@@ -26,47 +67,4 @@ tvar = do
 tyvar :: Parser SType
 tyvar = do
   v <- tvar
-  stype' $ TyVar v
-
-forall :: Parser SType
-forall = do
-  char 'A'
-  spaces
-  TyVar v <- tyvar
-  spaces
-  char '.'
-  spaces
-  b <- stype
-  stype' $ Forall v b
-
-parens :: Parser SType
-parens = do
-  char '('
-  spaces
-  t <- stype
-  spaces
-  char ')'
-  spaces
-  stype' t
-
-stype' :: SType -> Parser SType
-stype' t = try (label t) <|> try (fun t) <|> empty t
-
-empty :: SType -> Parser SType
-empty = return
-
-label :: SType -> Parser SType
-label t = do
-  spaces
-  char '^'
-  spaces
-  n <- many1 digit
-  stype' $ Label t (read n)
-
-fun :: SType -> Parser SType
-fun t = do
-  spaces
-  string "->"
-  spaces
-  u <- stype
-  stype' $ Fun t u
+  return $ TyVar v
