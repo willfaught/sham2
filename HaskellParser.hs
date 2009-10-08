@@ -1,21 +1,29 @@
 module HaskellParser (hexp) where
 
+import Prelude hiding (exp)
 import TypeParser
 import Syntax
 import Text.ParserCombinators.Parsec
 
 hexp :: Parser HExp
-hexp = add
-  <|> fix
-  <|> funabs
-  <|> funapp
-  <|> if0
-  <|> num
-  <|> sub
-  <|> tyabs
-  <|> var
-  <|> wrong
-  <|> parens
+hexp = chainl1 exp (funapp <?> "function application")
+
+funapp :: Parser (HExp -> HExp -> HExp)
+funapp = do
+  many1 space
+  return HFunApp
+
+exp :: Parser HExp
+exp = (add <?> "addition")
+  <|> (num <?> "number")
+  <|> (parens <?> "parentheses")
+  <|> (sub <?> "subtraction")
+  <|> try (var <?> "variable")
+  <|> (fix <?> "fixed-point operation")
+  <|> (if0 <?> "condition")
+  <|> (wrong <?> "wrong")
+  <|> try (funabs <?> "function abstraction")
+  <|> (tyabs <?> "type abstraction")
 
 add :: Parser HExp
 add = do
@@ -48,9 +56,6 @@ funabs = do
   e <- hexp
   hexp' $ HFunAbs x t e
 
-funapp :: Parser HExp
-funapp = chainl1 hexp (do many1 space ; return HFunApp)
-
 if0 :: Parser HExp
 if0 = do
   string "if0"
@@ -66,6 +71,16 @@ num :: Parser HExp
 num = do
   n <- many1 digit
   hexp' $ HNum (read n)
+
+parens :: Parser HExp
+parens = do
+  char '('
+  spaces
+  e <- hexp
+  spaces
+  char ')'
+  spaces
+  hexp' e
 
 sub :: Parser HExp
 sub = do
@@ -93,7 +108,7 @@ evar = do
   ps <- many (char '\'')
   let v = c : cs ++ ps
   if v `elem` ["fix", "if0", "wrong"]
-    then fail $ "The variable '" ++ v ++ "' is reserved."
+    then fail $ "the variable '" ++ v ++ "' is reserved"
     else return v
 
 var :: Parser HExp
@@ -112,18 +127,8 @@ wrong = do
   char '\"'
   hexp' $ HWrong t s
 
-parens :: Parser HExp
-parens = do
-  char '('
-  spaces
-  e <- hexp
-  spaces
-  char ')'
-  spaces
-  hexp' e
-
 hexp' :: HExp -> Parser HExp
-hexp' e = try (tyapp e) <|> empty e
+hexp' e = (try (tyapp e <?> "type application")) <|> empty e
 
 tyapp :: HExp -> Parser HExp
 tyapp e = do
