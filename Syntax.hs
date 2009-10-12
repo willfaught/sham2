@@ -7,21 +7,27 @@ type EVar = String
 
 type TVar = String
 
-data DType =
-  DType
+data DType = DType
   deriving (Eq, Show)
 
-type Name = String
-
-data SType =
+data SType = Forall TVar SType
   --Ext Name [SType]
-  Forall TVar SType
   | Fun SType SType
   | Label SType Int
   | Lump
   | Nat
   | TyVar TVar
-  deriving (Eq, Show)
+  deriving Eq
+
+instance Show SType where
+  show (Forall v t) = "A" ++ show v ++ "." ++ show t
+  show (Fun x y) = show x ++ "->" ++ show y
+  show (Label t n) = show t ++ "^" ++ show n
+  show Lump = "L"
+  show Nat = "N"
+  show (TyVar v) = show v
+
+type Name = String
 
 {-data TyField =
   TyField {
@@ -85,12 +91,52 @@ data HExp =
   | HTyApp HExp SType
   | HVar EVar
   | HWrong SType String
-  deriving (Eq, Show)
+  deriving Eq
 
-{-data MExp =
-  MNum Integer
-  deriving (Eq, Show)
+instance Show HExp where
+  show (HAdd x y) = "+ " ++ show x ++ " " ++ show y
+  show (HFix x) = "fix " ++ show x
+  show (HFunAbs v t b) = "\\" ++ show v ++ ":" ++ show t ++ "." ++ show b
+  show (HFunApp x y) = show x ++ " " ++ show y
+  show (HIf0 x y z) = "if0 " ++ show x ++ " " ++ show y ++ " " ++ show z
+  show (HNum x) = show x
+  show (HSub x y) = "- " ++ show x ++ " " ++ show y
+  show (HTyAbs v b) = "\\\\" ++ show v ++ "." ++ show b
+  show (HTyApp e t) = show e ++ " {" ++ show t ++ "}"
+  show (HVar v) = show v
+  show (HWrong t s) = "wrong " ++ show t ++ " " ++ s
 
-data SExp =
+data MExp =
+  MAdd MExp MExp
+  -- | MCon Name [Field MExp]
+  | MFix MExp
+  | MFunAbs EVar SType MExp
+  | MFunApp MExp MExp
+  -- | MField Name MExp
+  | MIf0 MExp MExp MExp
+  -- | MM SType MExp
+  | MNum Integer
+  -- | MS SType SExp
+  | MSub MExp MExp
+  | MTyAbs TVar MExp
+  | MTyApp MExp SType
+  | MVar EVar
+  | MWrong SType String
+  deriving Eq
+
+instance Show MExp where
+  show (MAdd x y) = "+ " ++ show x ++ " " ++ show y
+  show (MFix x) = "fix " ++ show x
+  show (MFunAbs v t b) = "\\" ++ show v ++ ":" ++ show t ++ "." ++ show b
+  show (MFunApp x y) = show x ++ " " ++ show y
+  show (MIf0 x y z) = "if0 " ++ show x ++ " " ++ show y ++ " " ++ show z
+  show (MNum x) = show x
+  show (MSub x y) = "- " ++ show x ++ " " ++ show y
+  show (MTyAbs v b) = "\\\\" ++ show v ++ "." ++ show b
+  show (MTyApp e t) = show e ++ " {" ++ show t ++ "}"
+  show (MVar v) = show v
+  show (MWrong t s) = "wrong " ++ show t ++ " " ++ s
+
+{-data SExp =
   SNum Integer
   deriving (Eq, Show)-}
