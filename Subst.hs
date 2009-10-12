@@ -1,8 +1,4 @@
-module Subst (
-  substExpH,
-  substTyExpH,
-  substTyTy)
-  where
+module Subst (substExpH, substTyExpH, substTyTy) where
 
 import Syntax
 
@@ -45,7 +41,7 @@ substTyTy :: SType -> TVar -> SType -> SType
 substTyTy new old forall @ (Forall var body) | old /= var = Forall var (substTyTy new old body)
                                              | otherwise = forall
 substTyTy new old (Fun param body) = Fun (substTyTy new old param) (substTyTy new old body)
-substTyTy _ _ x @ (Label _) = x
+substTyTy _ _ x @ (Label _ _) = x
 substTyTy _ _ Lump = Lump
 substTyTy _ _ Nat = Nat
 substTyTy new old (TyVar var) | old == var = new
