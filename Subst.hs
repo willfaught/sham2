@@ -1,4 +1,4 @@
-module Subst (substExpH, substTyExpH, substTyTy) where
+module Subst (substExpH, substExpM, substTyExpH, substTyExpM, substTyTy) where
 
 import Syntax
 
@@ -19,6 +19,23 @@ substExpH new old exp = go exp where
   go x @ (HVar _) = x
   go x @ (HWrong _ _) = x
 
+substExpM :: MExp -> EVar -> MExp -> MExp
+substExpM new old exp = go exp where
+  subst = substExpM new old
+  go (MAdd x y) = MAdd (subst x) (subst y)
+  go (MFix x) = MFix $ subst x
+  go f @ (MFunAbs v _ b) | old == v = f
+  go (MFunAbs v t body) = MFunAbs v t $ substExpM new old body
+  go (MFunApp x y) = MFunApp (subst x) (subst y)
+  go (MIf0 x y z) = MIf0 (subst x) (subst y) (subst z)
+  go x @ (MNum _) = x
+  go (MSub x y) = MSub (subst x) (subst y)
+  go (MTyAbs v b) = subst b
+  go (MTyApp a t) = MTyApp (subst a) t
+  go (MVar x) | old == x = new
+  go x @ (MVar _) = x
+  go x @ (MWrong _ _) = x
+
 substTyExpH :: SType -> TVar -> HExp -> HExp
 substTyExpH new old exp = go exp where
   substE = substTyExpH new old
@@ -35,6 +52,23 @@ substTyExpH new old exp = go exp where
   go (HTyApp a t) = HTyApp a (substT t)
   go x @ (HVar _) = x
   go x @ (HWrong _ _) = x
+
+substTyExpM :: SType -> TVar -> MExp -> MExp
+substTyExpM new old exp = go exp where
+  substE = substTyExpM new old
+  substT = substTyTy new old
+  go (MAdd x y) = MAdd (substE x) (substE y)
+  go (MFix x) = MFix $ substE x
+  go (MFunAbs v t b) = MFunAbs v (substT t) b
+  go (MFunApp x y) = MFunApp (substE x) (substE y)
+  go (MIf0 x y z) = MIf0 (substE x) (substE y) (substE z)
+  go x @ (MNum _) = x
+  go (MSub x y) = MSub (substE x) (substE y)
+  go x @ (MTyAbs v _) | old == v = x
+  go (MTyAbs v b) = MTyAbs v (substE b)
+  go (MTyApp a t) = MTyApp a (substT t)
+  go x @ (MVar _) = x
+  go x @ (MWrong _ _) = x
 
 substTyTy :: SType -> TVar -> SType -> SType
 --substTyTy new old (Ext n t) = Ext n $ map (substTyTy new old) t
