@@ -1,9 +1,12 @@
-module HaskellParser (hexp) where
+module HaskellParser (parseH, hexp) where
 
 import Prelude hiding (exp)
 import TypeParser
 import Syntax
 import Text.ParserCombinators.Parsec
+
+parseH :: String -> Either ParseError HExp
+parseH = parse hexp ""
 
 add :: Parser HExp
 add = do
