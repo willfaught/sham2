@@ -83,7 +83,7 @@ data HExp =
   | HFunApp HExp HExp
   -- | HField Name HExp
   | HIf0 HExp HExp HExp
-  -- | HM SType MExp
+  | HM SType MExp
   | HNum Integer
   -- | HS SType SExp
   | HSub HExp HExp
@@ -94,17 +94,18 @@ data HExp =
   deriving Eq
 
 instance Show HExp where
-  show (HAdd x y) = "+ " ++ show x ++ " " ++ show y
-  show (HFix x) = "fix " ++ show x
-  show (HFunAbs v t b) = "\\" ++ show v ++ ":" ++ show t ++ "." ++ show b
-  show (HFunApp x y) = show x ++ " " ++ show y
-  show (HIf0 x y z) = "if0 " ++ show x ++ " " ++ show y ++ " " ++ show z
+  show (HAdd x y) = "(+ " ++ show x ++ " " ++ show y ++ ")"
+  show (HFix x) = "(fix " ++ show x ++ ")"
+  show (HFunAbs v t b) = "(\\" ++ show v ++ ":" ++ show t ++ "." ++ show b ++ ")"
+  show (HFunApp x y) = "(" ++ show x ++ " " ++ show y ++ ")"
+  show (HIf0 x y z) = "(if0 " ++ show x ++ " " ++ show y ++ " " ++ show z ++ ")"
+  show (HM t e) = "(HM " ++ show t ++ " " ++ show e ++ ")"
   show (HNum x) = show x
-  show (HSub x y) = "- " ++ show x ++ " " ++ show y
-  show (HTyAbs v b) = "\\\\" ++ show v ++ "." ++ show b
-  show (HTyApp e t) = show e ++ " {" ++ show t ++ "}"
+  show (HSub x y) = "(- " ++ show x ++ " " ++ show y ++ ")"
+  show (HTyAbs v b) = "(\\\\" ++ show v ++ "." ++ show b ++ ")"
+  show (HTyApp e t) = "(" ++ show e ++ " {" ++ show t ++ "})"
   show (HVar v) = show v
-  show (HWrong t s) = "wrong " ++ show t ++ " " ++ s
+  show (HWrong t s) = "(wrong " ++ show t ++ " " ++ s ++ ")"
 
 data MExp =
   MAdd MExp MExp
@@ -113,8 +114,8 @@ data MExp =
   | MFunAbs EVar SType MExp
   | MFunApp MExp MExp
   -- | MField Name MExp
+  | MH SType HExp
   | MIf0 MExp MExp MExp
-  -- | MM SType MExp
   | MNum Integer
   -- | MS SType SExp
   | MSub MExp MExp
@@ -125,17 +126,18 @@ data MExp =
   deriving Eq
 
 instance Show MExp where
-  show (MAdd x y) = "+ " ++ show x ++ " " ++ show y
-  show (MFix x) = "fix " ++ show x
-  show (MFunAbs v t b) = "\\" ++ show v ++ ":" ++ show t ++ "." ++ show b
-  show (MFunApp x y) = show x ++ " " ++ show y
-  show (MIf0 x y z) = "if0 " ++ show x ++ " " ++ show y ++ " " ++ show z
+  show (MAdd x y) = "(+ " ++ show x ++ " " ++ show y ++ ")"
+  show (MFix x) = "(fix " ++ show x ++ ")"
+  show (MFunAbs v t b) = "(\\" ++ show v ++ ":" ++ show t ++ "." ++ show b ++ ")"
+  show (MFunApp x y) = "(" ++ show x ++ " " ++ show y ++ ")"
+  show (MIf0 x y z) = "(if0 " ++ show x ++ " " ++ show y ++ " " ++ show z ++ ")"
+  show (MH t e) = "(MH " ++ show t ++ " " ++ show e ++ ")"
   show (MNum x) = show x
-  show (MSub x y) = "- " ++ show x ++ " " ++ show y
-  show (MTyAbs v b) = "\\\\" ++ show v ++ "." ++ show b
-  show (MTyApp e t) = show e ++ " {" ++ show t ++ "}"
+  show (MSub x y) = "(- " ++ show x ++ " " ++ show y ++ ")"
+  show (MTyAbs v b) = "(\\\\" ++ show v ++ "." ++ show b ++ ")"
+  show (MTyApp e t) = "(" ++ show e ++ " {" ++ show t ++ "})"
   show (MVar v) = show v
-  show (MWrong t s) = "wrong " ++ show t ++ " " ++ s
+  show (MWrong t s) = "(wrong " ++ show t ++ " " ++ s ++ ")"
 
 {-data SExp =
   SNum Integer
