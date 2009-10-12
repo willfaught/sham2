@@ -92,7 +92,7 @@ reduceM (MFunApp x y) = do
   return $ MFunApp x' y
 --reduceM (MField fn (MCon cn f)) =
 reduceM (MH Nat (HNum n)) = return $ MNum n
-reduceM (MH (Fun p r) f @ (HFunAbs v t b) =
+reduceM (MH (Fun p r) f @ (HFunAbs v t b)) =
   return $ MFunAbs v p (MH r (HFunApp f (HM p (MVar v))))
 reduceM (MH (Forall v t) (HTyAbs w e)) = return $ MTyAbs v (MH t e)
 reduceM (MIf0 (MNum 0) t _) = Just t
