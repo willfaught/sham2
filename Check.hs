@@ -1,6 +1,4 @@
-module Check (
-  checkH)
-  where
+module Check (checkH, checkM) where
 
 import Context
 import Data.List (find)

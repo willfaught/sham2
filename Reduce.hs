@@ -1,6 +1,4 @@
-module Reduce (
-  reduceH)
-  where
+module Reduce (reduceH) where
 
 import Subst
 import Syntax

@@ -1,7 +1,7 @@
-module HaskellParserP (hexp) where
+module HaskellParser (hexp) where
 
 import Prelude hiding (exp)
-import TypeParserP
+import TypeParser
 import Syntax
 import Text.ParserCombinators.Parsec
 
