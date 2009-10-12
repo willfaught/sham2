@@ -73,6 +73,11 @@ checkH c (HIf0 g t f) = do
   u <- checkM d c m
   assert (t == u)
   return t-}
+checkH c (HM t e) = do
+  assert (closed t)
+  u <- checkM c e
+  assert (t == u)
+  return t
 checkH _ (HNum _) = Just Nat
 {-checkH c (HS t e) = do
   assert (closed t)
@@ -138,6 +143,11 @@ checkM c (MFunApp x y) = do
   TyField _ _ s <- tyfield n d
   t <- checkM c e
   return $ s t-}
+checkM c (MH t e) = do
+  assert (closed t)
+  u <- checkH c e
+  assert (t == u)
+  return t
 checkM c (MIf0 g t f) = do
   gt <- checkM c g
   tt <- checkM c t

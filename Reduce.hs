@@ -55,6 +55,11 @@ reduceH (HIf0 (HNum _) _ f) = Just f
 reduceH (HIf0 x t f) = do
   x' <- reduceH x
   return $ HIf0 x' t f
+reduceH (HM t (MH u e)) = return e
+reduceH (HM Nat (MNum n)) = return $ HNum n
+reduceH (HM (Fun p r) f @ (MFunAbs v t b)) =
+  return $ HFunAbs v p (HM r (MFunApp f (MH p (HVar v))))
+reduceH (HM (Forall v t) (MTyAbs w e)) = return $ HTyAbs v (HM t e)
 reduceH (HSub (HNum x) (HNum y)) = Just . HNum $ x + y
 reduceH (HSub x y) | not $ valueH x = do
   x' <- reduceH x
@@ -85,7 +90,11 @@ reduceM (MFunApp (MFunAbs v t b) a) = return $ substExpM a v b
 reduceM (MFunApp x y) = do
   x' <- reduceM x
   return $ MFunApp x' y
---reduceM (MField fn (MCon cn f)) = 
+--reduceM (MField fn (MCon cn f)) =
+reduceM (MH Nat (HNum n)) = return $ MNum n
+reduceM (MH (Fun p r) f @ (HFunAbs v t b) =
+  return $ MFunAbs v p (MH r (HFunApp f (HM p (MVar v))))
+reduceM (MH (Forall v t) (HTyAbs w e)) = return $ MTyAbs v (MH t e)
 reduceM (MIf0 (MNum 0) t _) = Just t
 reduceM (MIf0 (MNum _) _ f) = Just f
 reduceM (MIf0 x t f) = do
