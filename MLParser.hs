@@ -1,35 +1,35 @@
-module HaskellParser (parseH, hexp) where
+module MLParser (parseM, mexp) where
 
-import MLParser
+import HaskellParser
 import Prelude hiding (exp)
 import TypeParser
 import Syntax
 import Text.ParserCombinators.Parsec
 
-parseH :: String -> Either ParseError HExp
-parseH = parse hexp ""
+parseM :: String -> Either ParseError MExp
+parseM = parse mexp ""
 
-funapp :: Parser HExp
+funapp :: Parser MExp
 funapp = do
-  e1 <- hexp
+  e1 <- mexp
   many1 space
-  e2 <- hexp
-  return $ HFunApp e1 e2
+  e2 <- mexp
+  return $ MFunApp e1 e2
 
-hexp :: Parser HExp
-hexp = do
+mexp :: Parser MExp
+mexp = do
   char '('
   spaces
-  e <- hexp'
+  e <- mexp'
   spaces
   char ')'
   return e
 
-hexp' :: Parser HExp
-hexp' = (add <?> "addition")
+mexp' :: Parser MExp
+mexp' = (add <?> "addition")
   <|> (sub <?> "subtraction")
   <|> (num <?> "number")
-  <|> (hm <?> "ML")
+  <|> (mh <?> "haskell")
   <|> try (fix <?> "fixed-point operation")
   <|> try (if0 <?> "condition")
   <|> try (wrong <?> "wrong")
@@ -39,25 +39,25 @@ hexp' = (add <?> "addition")
   <|> try (tyapp <?> "type application")
   <|> (funapp <?> "function application")
 
-tyapp :: Parser HExp
+tyapp :: Parser MExp
 tyapp = do
-  e <- hexp
+  e <- mexp
   many1 space
   char '{'
   spaces
   t <- stype
   spaces
   char '}'
-  return $ HTyApp e t
+  return $ MTyApp e t
 
-add :: Parser HExp
+add :: Parser MExp
 add = do
   char '+'
   spaces
-  e1 <- hexp
+  e1 <- mexp
   many1 space
-  e2 <- hexp
-  return $ HAdd e1 e2
+  e2 <- mexp
+  return $ MAdd e1 e2
 
 evar :: Parser EVar
 evar = do
@@ -66,23 +66,23 @@ evar = do
   ps <- many (char '\'')
   return $ c : cs ++ ps
 
-hm :: Parser HExp
-hm = do
-  string "HM"
+mh :: Parser MExp
+mh = do
+  string "MH"
   many1 space
   t <- stype
   many1 space
   e <- mexp
-  return $ HM t e
+  return $ MM t e
 
-fix :: Parser HExp
+fix :: Parser MExp
 fix = do
   string "fix"
   many1 space
-  e <- hexp
-  return $ HFix e
+  e <- mexp
+  return $ MFix e
 
-funabs :: Parser HExp
+funabs :: Parser MExp
 funabs = do
   char '\\'
   spaces
@@ -94,27 +94,27 @@ funabs = do
   spaces
   char '.'
   spaces
-  e <- hexp
-  return $ HFunAbs x t e
+  e <- mexp
+  return $ MFunAbs x t e
 
 
-if0 :: Parser HExp
+if0 :: Parser MExp
 if0 = do
   string "if0"
   many1 space
-  c <- hexp
+  c <- mexp
   many1 space
-  t <- hexp
+  t <- mexp
   many1 space
-  f <- hexp
-  return $ HIf0 c t f
+  f <- mexp
+  return $ MIf0 c t f
 
-num :: Parser HExp
+num :: Parser MExp
 num = do
   n <- many1 digit
-  return $ HNum (read n)
+  return $ MNum (read n)
 
-parens :: Parser HExp -> Parser HExp
+parens :: Parser MExp -> Parser MExp
 parens p = do
   char '('
   spaces
@@ -123,31 +123,31 @@ parens p = do
   char ')'
   return e
 
-sub :: Parser HExp
+sub :: Parser MExp
 sub = do
   char '-'
   spaces
-  e1 <- hexp
+  e1 <- mexp
   many1 space
-  e2 <- hexp
-  return $ HSub e1 e2
+  e2 <- mexp
+  return $ MSub e1 e2
 
-tyabs :: Parser HExp
+tyabs :: Parser MExp
 tyabs = do
   string "\\\\"
   spaces
   v <- tvar
   spaces
   char '.'
-  e <- hexp
-  return $ HTyAbs v e
+  e <- mexp
+  return $ MTyAbs v e
 
-var :: Parser HExp
+var :: Parser MExp
 var = do
   v <- evar
-  return $ HVar v
+  return $ MVar v
 
-wrong :: Parser HExp
+wrong :: Parser MExp
 wrong = do
   string "wrong"
   many1 space
@@ -156,4 +156,4 @@ wrong = do
   char '\"'
   s <- many1 $ noneOf ['\"']
   char '\"'
-  return $ HWrong t s
+  return $ MWrong t s
