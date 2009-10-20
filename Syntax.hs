@@ -20,12 +20,17 @@ data SType = Forall TVar SType
   deriving Eq
 
 instance Show SType where
-  show (Forall v t) = "A" ++ show v ++ "." ++ show t
-  show (Fun x y) = show x ++ "->" ++ show y
-  show (Label t n) = show t ++ "^" ++ show n
-  show Lump = "L"
-  show Nat = "N"
-  show (TyVar v) = show v
+  show = showT True
+
+showT :: Bool -> SType -> String
+showT top e = case e of
+  Forall v t -> wrap $ "A" ++ v ++ "." ++ showT False t
+  Fun x y -> wrap $ showT False x ++ "->" ++ showT False y
+  Label t n -> wrap $ showT False t ++ "^" ++ show n
+  Lump -> "L"
+  Nat -> "N"
+  TyVar v -> v
+  where wrap s = if top then s else "(" ++ s ++ ")"
 
 type Name = String
 
@@ -94,18 +99,23 @@ data HExp =
   deriving Eq
 
 instance Show HExp where
-  show (HAdd x y) = "(+ " ++ show x ++ " " ++ show y ++ ")"
-  show (HFix x) = "(fix " ++ show x ++ ")"
-  show (HFunAbs v t b) = "(\\" ++ show v ++ ":" ++ show t ++ "." ++ show b ++ ")"
-  show (HFunApp x y) = "(" ++ show x ++ " " ++ show y ++ ")"
-  show (HIf0 x y z) = "(if0 " ++ show x ++ " " ++ show y ++ " " ++ show z ++ ")"
-  show (HM t e) = "(HM " ++ show t ++ " " ++ show e ++ ")"
-  show (HNum x) = show x
-  show (HSub x y) = "(- " ++ show x ++ " " ++ show y ++ ")"
-  show (HTyAbs v b) = "(\\\\" ++ show v ++ "." ++ show b ++ ")"
-  show (HTyApp e t) = "(" ++ show e ++ " {" ++ show t ++ "})"
-  show (HVar v) = show v
-  show (HWrong t s) = "(wrong " ++ show t ++ " " ++ s ++ ")"
+  show = showH True where 
+
+showH :: Bool -> HExp -> String
+showH top e = case e of
+  HAdd x y -> wrap $ "+ " ++ showH False x ++ " " ++ showH False y
+  HFix x -> wrap $ "fix " ++ showH False x
+  HFunAbs v t b -> wrap $ "\\" ++ v ++ ":" ++ showT False t ++ "." ++ showH False b
+  HFunApp x y -> wrap $ showH False x ++ " " ++ showH False y
+  HIf0 x y z -> wrap $ "if0 " ++ showH False x ++ " " ++ showH False y ++ " " ++ showH False z
+  HM t e -> wrap $ "HM " ++ showT False t ++ " " ++ showM False e
+  HNum n -> show n
+  HSub x y -> wrap $ "- " ++ showH False x ++ " " ++ showH False y
+  HTyAbs v b -> wrap $ "\\\\" ++ v ++ "." ++ showH False b
+  HTyApp e t -> wrap $ "" ++ showH False e ++ " {" ++ showT False t ++ "}"
+  HVar v -> v
+  HWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ s
+  where wrap s = if top then s else "(" ++ s ++ ")"
 
 data MExp =
   MAdd MExp MExp
@@ -125,19 +135,21 @@ data MExp =
   | MWrong SType String
   deriving Eq
 
-instance Show MExp where
-  show (MAdd x y) = "(+ " ++ show x ++ " " ++ show y ++ ")"
-  show (MFix x) = "(fix " ++ show x ++ ")"
-  show (MFunAbs v t b) = "(\\" ++ show v ++ ":" ++ show t ++ "." ++ show b ++ ")"
-  show (MFunApp x y) = "(" ++ show x ++ " " ++ show y ++ ")"
-  show (MIf0 x y z) = "(if0 " ++ show x ++ " " ++ show y ++ " " ++ show z ++ ")"
-  show (MH t e) = "(MH " ++ show t ++ " " ++ show e ++ ")"
-  show (MNum x) = show x
-  show (MSub x y) = "(- " ++ show x ++ " " ++ show y ++ ")"
-  show (MTyAbs v b) = "(\\\\" ++ show v ++ "." ++ show b ++ ")"
-  show (MTyApp e t) = "(" ++ show e ++ " {" ++ show t ++ "})"
-  show (MVar v) = show v
-  show (MWrong t s) = "(wrong " ++ show t ++ " " ++ s ++ ")"
+showM :: Bool -> MExp -> String
+showM top e = case e of
+  MAdd x y -> wrap $ "+ " ++ showM False x ++ " " ++ showM False y
+  MFix x -> wrap $ "fix " ++ showM False x
+  MFunAbs v t b -> wrap $ "\\" ++ v ++ ":" ++ showT False t ++ "." ++ showM False b
+  MFunApp x y -> wrap $ showM False x ++ " " ++ showM False y
+  MIf0 x y z -> wrap $ "if0 " ++ showM False x ++ " " ++ showM False y ++ " " ++ showM False z
+  MH t e -> wrap $ "MH " ++ showT False t ++ " " ++ showH False e
+  MNum n -> show n
+  MSub x y -> wrap $ "- " ++ showM False x ++ " " ++ showM False y
+  MTyAbs v b -> wrap $ "\\\\" ++ v ++ "." ++ showM False b
+  MTyApp e t -> wrap $ "" ++ showM False e ++ " {" ++ showT False t ++ "}"
+  MVar v -> v
+  MWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ s
+  where wrap s = if top then s else "(" ++ s ++ ")"
 
 {-data SExp =
   SNum Integer
