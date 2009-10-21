@@ -3,39 +3,75 @@ module Subst (substExpH, substExpM, substTyExpH, substTyExpM, substTyTy) where
 import Syntax
 
 substExpH :: HExp -> EVar -> HExp -> HExp
-substExpH new old exp = go exp where
-  subst = substExpH new old
-  go (HAdd x y) = HAdd (subst x) (subst y)
-  go (HFix x) = HFix $ subst x
-  go f @ (HFunAbs v _ b) | old == v = f
-  go (HFunAbs v t body) = HFunAbs v t $ substExpH new old body
-  go (HFunApp x y) = HFunApp (subst x) (subst y)
-  go (HIf0 x y z) = HIf0 (subst x) (subst y) (subst z)
-  go x @ (HNum _) = x
-  go (HSub x y) = HSub (subst x) (subst y)
-  go (HTyAbs v b) = subst b
-  go (HTyApp a t) = HTyApp (subst a) t
-  go (HVar x) | old == x = new
-  go x @ (HVar _) = x
-  go x @ (HWrong _ _) = x
+substExpH new old exp = case exp of
+  HAdd x y -> HAdd (subst x) (subst y)
+  HFix x -> HFix $ subst x
+  f @ (HFunAbs v _ _) | old == v -> f
+  HFunAbs v t b -> HFunAbs v t $ subst b
+  HFunApp x y -> HFunApp (subst x) (subst y)
+  HIf0 x y z -> HIf0 (subst x) (subst y) (subst z)
+  HM t e -> HM t $ substHM new old e
+  x @ (HNum _) -> x
+  HSub x y -> HSub (subst x) (subst y)
+  HTyAbs v b -> HTyAbs v $ subst b
+  HTyApp e t -> HTyApp (subst e) t
+  HVar x | old == x -> new
+  x @ (HVar _) -> x
+  x @ (HWrong _ _) -> x
+  where subst = substExpH new old
+
+substHM :: HExp -> EVar -> MExp -> MExp
+substHM new old exp = case exp of
+  MAdd x y -> MAdd (subst x) (subst y)
+  MFix x -> MFix $ subst x
+  MFunAbs v t b -> MFunAbs v t $ subst b
+  MFunApp x y -> MFunApp (subst x) (subst y)
+  MIf0 x y z -> MIf0 (subst x) (subst y) (subst z)
+  MH t e -> MH t $ substExpH new old e
+  x @ (MNum _) -> x
+  MSub x y -> MSub (subst x) (subst y)
+  MTyAbs v b -> MTyAbs v $ subst b
+  MTyApp e t -> MTyApp (subst e) t
+  x @ (MVar _) -> x
+  x @ (MWrong _ _) -> x
+  where
+    subst = substHM new old
 
 substExpM :: MExp -> EVar -> MExp -> MExp
-substExpM new old exp = go exp where
-  subst = substExpM new old
-  go (MAdd x y) = MAdd (subst x) (subst y)
-  go (MFix x) = MFix $ subst x
-  go f @ (MFunAbs v _ b) | old == v = f
-  go (MFunAbs v t body) = MFunAbs v t $ substExpM new old body
-  go (MFunApp x y) = MFunApp (subst x) (subst y)
-  go (MIf0 x y z) = MIf0 (subst x) (subst y) (subst z)
-  go x @ (MNum _) = x
-  go (MSub x y) = MSub (subst x) (subst y)
-  go (MTyAbs v b) = subst b
-  go (MTyApp a t) = MTyApp (subst a) t
-  go (MVar x) | old == x = new
-  go x @ (MVar _) = x
-  go x @ (MWrong _ _) = x
+substExpM new old exp = case exp of
+  MAdd x y -> MAdd (subst x) (subst y)
+  MFix x -> MFix $ subst x
+  f @ (MFunAbs v _ _) | old == v -> f
+  MFunAbs v t b -> MFunAbs v t $ subst b
+  MFunApp x y -> MFunApp (subst x) (subst y)
+  MIf0 x y z -> MIf0 (subst x) (subst y) (subst z)
+  MH t e -> MH t $ substMH new old e
+  x @ (MNum _) -> x
+  MSub x y -> MSub (subst x) (subst y)
+  MTyAbs v b -> MTyAbs v $ subst b
+  MTyApp e t -> MTyApp (subst e) t
+  MVar x | old == x -> new
+  x @ (MVar _) -> x
+  x @ (MWrong _ _) -> x
+  where subst = substExpM new old
 
+substMH :: MExp -> EVar -> HExp -> HExp
+substMH new old exp = case exp of
+  HAdd x y -> HAdd (subst x) (subst y)
+  HFix x -> HFix $ subst x
+  HFunAbs v t b -> HFunAbs v t $ subst b
+  HFunApp x y -> HFunApp (subst x) (subst y)
+  HIf0 x y z -> HIf0 (subst x) (subst y) (subst z)
+  HM t e -> HM t $ substExpM new old e
+  x @ (HNum _) -> x
+  HSub x y -> HSub (subst x) (subst y)
+  HTyAbs v b -> HTyAbs v $ subst b
+  HTyApp e t -> HTyApp (subst e) t
+  x @ (HVar _) -> x
+  x @ (HWrong _ _) -> x
+  where
+    subst = substMH new old
+    
 substTyExpH :: SType -> TVar -> HExp -> HExp
 substTyExpH new old exp = go exp where
   substE = substTyExpH new old
