@@ -7,11 +7,9 @@ type EVar = String
 
 type TVar = String
 
-data DType = DType
-  deriving (Eq, Show)
+data DType = DType deriving (Eq, Show)
 
 data SType = Forall TVar SType
-  --Ext Name [SType]
   | Fun SType SType
   | Label SType Int
   | Lump
@@ -32,9 +30,9 @@ showT top e = case e of
   TyVar v -> v
   where wrap s = if top then s else "(" ++ s ++ ")"
 
-type Name = String
+{-type Name = String
 
-{-data TyField =
+data TyField =
   TyField {
     tyfieldName :: Maybe Name,
     tyfieldType :: SType }
@@ -82,15 +80,13 @@ data Field e =
 
 data HExp =
   HAdd HExp HExp
-  -- | HCon Name [Field HExp]
   | HFix HExp
   | HFunAbs EVar SType HExp
   | HFunApp HExp HExp
-  -- | HField Name HExp
   | HIf0 HExp HExp HExp
   | HM SType MExp
   | HNum Integer
-  -- | HS SType SExp
+  | HS SType SExp
   | HSub HExp HExp
   | HTyAbs TVar HExp
   | HTyApp HExp SType
@@ -99,7 +95,7 @@ data HExp =
   deriving Eq
 
 instance Show HExp where
-  show = showH True where 
+  show = showH True
 
 showH :: Bool -> HExp -> String
 showH top e = case e of
@@ -110,24 +106,23 @@ showH top e = case e of
   HIf0 x y z -> wrap $ "if0 " ++ showH False x ++ " " ++ showH False y ++ " " ++ showH False z
   HM t e -> wrap $ "HM " ++ showT False t ++ " " ++ showM False e
   HNum n -> show n
+  HS t e -> wrap $ "HS " ++ showT False t ++ " " ++ showS False e
   HSub x y -> wrap $ "- " ++ showH False x ++ " " ++ showH False y
   HTyAbs v b -> wrap $ "\\\\" ++ v ++ "." ++ showH False b
   HTyApp e t -> wrap $ "" ++ showH False e ++ " {" ++ showT False t ++ "}"
   HVar v -> v
-  HWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ s
+  HWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
 
 data MExp =
   MAdd MExp MExp
-  -- | MCon Name [Field MExp]
   | MFix MExp
   | MFunAbs EVar SType MExp
   | MFunApp MExp MExp
-  -- | MField Name MExp
   | MH SType HExp
   | MIf0 MExp MExp MExp
   | MNum Integer
-  -- | MS SType SExp
+  | MS SType SExp
   | MSub MExp MExp
   | MTyAbs TVar MExp
   | MTyApp MExp SType
@@ -135,22 +130,52 @@ data MExp =
   | MWrong SType String
   deriving Eq
 
+instance Show MExp where
+  show = showM True
+  
 showM :: Bool -> MExp -> String
 showM top e = case e of
   MAdd x y -> wrap $ "+ " ++ showM False x ++ " " ++ showM False y
   MFix x -> wrap $ "fix " ++ showM False x
   MFunAbs v t b -> wrap $ "\\" ++ v ++ ":" ++ showT False t ++ "." ++ showM False b
   MFunApp x y -> wrap $ showM False x ++ " " ++ showM False y
-  MIf0 x y z -> wrap $ "if0 " ++ showM False x ++ " " ++ showM False y ++ " " ++ showM False z
   MH t e -> wrap $ "MH " ++ showT False t ++ " " ++ showH False e
+  MIf0 x y z -> wrap $ "if0 " ++ showM False x ++ " " ++ showM False y ++ " " ++ showM False z
   MNum n -> show n
+  MS t e -> wrap $ "MS " ++ showT False t ++ " " ++ showS False e
   MSub x y -> wrap $ "- " ++ showM False x ++ " " ++ showM False y
   MTyAbs v b -> wrap $ "\\\\" ++ v ++ "." ++ showM False b
   MTyApp e t -> wrap $ "" ++ showM False e ++ " {" ++ showT False t ++ "}"
   MVar v -> v
-  MWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ s
+  MWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
 
-{-data SExp =
-  SNum Integer
-  deriving (Eq, Show)-}
+data SExp =
+  SAdd SExp SExp
+  | SFunAbs EVar SExp
+  | SFunApp SExp SExp
+  | SH SType HExp
+  | SIf0 SExp SExp SExp
+  | SM SType MExp
+  | SNum Integer
+  | SSub SExp SExp
+  | SVar EVar
+  | SWrong String
+  deriving Eq
+
+instance Show SExp where
+  show = showS True
+
+showS :: Bool -> SExp -> String
+showS top e = case e of
+  SAdd x y -> wrap $ "+ " ++ showS False x ++ " " ++ showS False y
+  SFunAbs v b -> wrap $ "\\" ++ v ++ "." ++ showS False b
+  SFunApp x y -> wrap $ showS False x ++ " " ++ showS False y
+  SH t e -> wrap $ "SH " ++ showT False t ++ " " ++ showH False e
+  SIf0 x y z -> wrap $ "if0 " ++ showS False x ++ " " ++ showS False y ++ " " ++ showS False z
+  SM t e -> wrap $ "SM " ++ showT False t ++ " " ++ showM False e
+  SNum n -> show n
+  SSub x y -> wrap $ "- " ++ showS False x ++ " " ++ showS False y
+  SVar v -> v
+  SWrong s -> wrap $ "wrong " ++ show s
+  where wrap s = if top then s else "(" ++ s ++ ")"
