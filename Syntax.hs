@@ -2,6 +2,9 @@ module Syntax where
 
 import Data.List (find)
 import Data.Maybe (fromJust, isJust)
+import Prelude hiding (mapM)
+
+-- Types
 
 type EVar = String
 
@@ -30,7 +33,8 @@ showT top e = case e of
   TyVar v -> v
   where wrap s = if top then s else "(" ++ s ++ ")"
 
-{-type Name = String
+{-
+type Name = String
 
 data TyField =
   TyField {
@@ -76,7 +80,10 @@ fieldcon n1 = fromJust . find isJust . map def where
 data Field e =
   FieldExp e
   | FieldType SType
-  deriving (Eq, Show)-}
+  deriving (Eq, Show)
+-}
+
+-- Expressions
 
 data HExp =
   HAdd HExp HExp
@@ -93,6 +100,37 @@ data HExp =
   | HVar EVar
   | HWrong SType String
   deriving Eq
+
+data MExp =
+  MAdd MExp MExp
+  | MFix MExp
+  | MFunAbs EVar SType MExp
+  | MFunApp MExp MExp
+  | MH SType HExp
+  | MIf0 MExp MExp MExp
+  | MNum Integer
+  | MS SType SExp
+  | MSub MExp MExp
+  | MTyAbs TVar MExp
+  | MTyApp MExp SType
+  | MVar EVar
+  | MWrong SType String
+  deriving Eq
+
+data SExp =
+  SAdd SExp SExp
+  | SFunAbs EVar SExp
+  | SFunApp SExp SExp
+  | SH SType HExp
+  | SIf0 SExp SExp SExp
+  | SM SType MExp
+  | SNum Integer
+  | SSub SExp SExp
+  | SVar EVar
+  | SWrong String
+  deriving Eq
+
+-- Show
 
 instance Show HExp where
   show = showH True
@@ -114,22 +152,6 @@ showH top e = case e of
   HWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
 
-data MExp =
-  MAdd MExp MExp
-  | MFix MExp
-  | MFunAbs EVar SType MExp
-  | MFunApp MExp MExp
-  | MH SType HExp
-  | MIf0 MExp MExp MExp
-  | MNum Integer
-  | MS SType SExp
-  | MSub MExp MExp
-  | MTyAbs TVar MExp
-  | MTyApp MExp SType
-  | MVar EVar
-  | MWrong SType String
-  deriving Eq
-
 instance Show MExp where
   show = showM True
   
@@ -150,19 +172,6 @@ showM top e = case e of
   MWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
 
-data SExp =
-  SAdd SExp SExp
-  | SFunAbs EVar SExp
-  | SFunApp SExp SExp
-  | SH SType HExp
-  | SIf0 SExp SExp SExp
-  | SM SType MExp
-  | SNum Integer
-  | SSub SExp SExp
-  | SVar EVar
-  | SWrong String
-  deriving Eq
-
 instance Show SExp where
   show = showS True
 
@@ -179,3 +188,65 @@ showS top e = case e of
   SVar v -> v
   SWrong s -> wrap $ "wrong " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
+
+-- ExpMap
+
+class ExpMap a where
+  emap :: (a -> a) -> a -> a
+
+instance ExpMap HExp where
+  emap = mapH
+
+mapH :: (HExp -> HExp) -> HExp -> HExp
+mapH f e = f $ case e of
+  HAdd m n -> HAdd (go m) (go n)
+  HFix x -> HFix $ go x
+  HFunAbs v t b -> HFunAbs v t (go b)
+  HFunApp f a -> HFunApp (go f) (go a)
+  HIf0 c t f -> HIf0 (go c) (go t) (go f)
+  HM _ _ -> e
+  HS _ _ -> e
+  HNum _ -> e
+  HSub m n -> HSub (go m) (go n)
+  HTyAbs v b -> HTyAbs v $ go b
+  HTyApp e t -> HTyApp (go e) t
+  HVar _ -> e
+  HWrong _ _ -> e
+  where go = mapH f
+
+instance ExpMap MExp where
+  emap = mapM
+
+mapM :: (MExp -> MExp) -> MExp -> MExp
+mapM f e = f $ case e of
+  MAdd m n -> MAdd (go m) (go n)
+  MFix x -> MFix $ go x
+  MFunAbs v t b -> MFunAbs v t (go b)
+  MFunApp f a -> MFunApp (go f) (go a)
+  MIf0 c t f -> MIf0 (go c) (go t) (go f)
+  MH _ _ -> e
+  MS _ _ -> e
+  MNum _ -> e
+  MSub m n -> MSub (go m) (go n)
+  MTyAbs v b -> MTyAbs v $ go b
+  MTyApp e t -> MTyApp (go e) t
+  MVar _ -> e
+  MWrong _ _ -> e
+  where go = mapM f
+
+instance ExpMap SExp where
+  emap = mapS
+
+mapS :: (SExp -> SExp) -> SExp -> SExp
+mapS f e = f $ case e of
+  SAdd m n -> SAdd (go m) (go n)
+  SFunAbs v b -> SFunAbs v (go b)
+  SFunApp f a -> SFunApp (go f) (go a)
+  SIf0 c t f -> SIf0 (go c) (go t) (go f)
+  SH _ _ -> e
+  SM _ _ -> e
+  SNum _ -> e
+  SSub m n -> SSub (go m) (go n)
+  SVar _ -> e
+  SWrong _ -> e
+  where go = mapS f
