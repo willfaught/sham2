@@ -1,6 +1,12 @@
-module Subst (substExpH, substExpM, substTyExpH, substTyExpM, substTyTy) where
+module Subst (substExpH, substExpM, substExpS, substTyExpH, substTyExpM, substTyTy) where
 
 import Syntax
+
+maph :: (HExp -> Bool) -> (HExp -> HExp) -> HExp -> HExp
+maph p f e = case e of
+  w @ (HAdd x y) -> if p w then f w else HAdd (maph x) (maph y)
+
+substExpH new old exp = 
 
 substExpH :: HExp -> EVar -> HExp -> HExp
 substExpH new old exp = case exp of
@@ -37,6 +43,8 @@ substHM new old exp = case exp of
   where
     subst = substHM new old
 
+substHS = undefined
+    
 substExpM :: MExp -> EVar -> MExp -> MExp
 substExpM new old exp = case exp of
   MAdd x y -> MAdd (subst x) (subst y)
@@ -71,6 +79,28 @@ substMH new old exp = case exp of
   x @ (HWrong _ _) -> x
   where
     subst = substMH new old
+
+substMS = undefined
+
+substExpS :: SExp -> EVar -> SExp -> SExp
+substExpS new old exp = case exp of
+  SAdd x y -> SAdd (subst x) (subst y)
+  f @ (SFunAbs v _) | old == v -> f
+  SFunAbs v b -> SFunAbs v $ subst b
+  SFunApp x y -> SFunApp (subst x) (subst y)
+  SH t e -> SH t $ substSH new old e
+  SIf0 x y z -> SIf0 (subst x) (subst y) (subst z)
+  SM t e -> SM t $ substSM new old e
+  x @ (SNum _) -> x
+  SSub x y -> SSub (subst x) (subst y)
+  SVar x | old == x -> new
+  x @ (SVar _) -> x
+  x @ (SWrong _) -> x
+  where subst = substExpS new old
+
+substSH = undefined
+
+substSM = undefined
     
 substTyExpH :: SType -> TVar -> HExp -> HExp
 substTyExpH new old exp = go exp where
