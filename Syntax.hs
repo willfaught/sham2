@@ -195,58 +195,37 @@ class ExpMap a where
   emap :: (a -> a) -> a -> a
 
 instance ExpMap HExp where
-  emap = mapH
-
-mapH :: (HExp -> HExp) -> HExp -> HExp
-mapH f e = f $ case e of
-  HAdd m n -> HAdd (go m) (go n)
-  HFix x -> HFix $ go x
-  HFunAbs v t b -> HFunAbs v t (go b)
-  HFunApp f a -> HFunApp (go f) (go a)
-  HIf0 c t f -> HIf0 (go c) (go t) (go f)
-  HM _ _ -> e
-  HS _ _ -> e
-  HNum _ -> e
-  HSub m n -> HSub (go m) (go n)
-  HTyAbs v b -> HTyAbs v $ go b
-  HTyApp e t -> HTyApp (go e) t
-  HVar _ -> e
-  HWrong _ _ -> e
-  where go = mapH f
+  emap f e = case e of
+    HAdd m n -> HAdd (go m) (go n)
+    HFix x -> HFix $ go x
+    HFunAbs v t b -> HFunAbs v t (go b)
+    HFunApp f a -> HFunApp (go f) (go a)
+    HIf0 c t f -> HIf0 (go c) (go t) (go f)
+    HSub m n -> HSub (go m) (go n)
+    HTyAbs v b -> HTyAbs v $ go b
+    HTyApp e t -> HTyApp (go e) t
+    _ -> e
+    where go = emap f
 
 instance ExpMap MExp where
-  emap = mapM
-
-mapM :: (MExp -> MExp) -> MExp -> MExp
-mapM f e = f $ case e of
-  MAdd m n -> MAdd (go m) (go n)
-  MFix x -> MFix $ go x
-  MFunAbs v t b -> MFunAbs v t (go b)
-  MFunApp f a -> MFunApp (go f) (go a)
-  MIf0 c t f -> MIf0 (go c) (go t) (go f)
-  MH _ _ -> e
-  MS _ _ -> e
-  MNum _ -> e
-  MSub m n -> MSub (go m) (go n)
-  MTyAbs v b -> MTyAbs v $ go b
-  MTyApp e t -> MTyApp (go e) t
-  MVar _ -> e
-  MWrong _ _ -> e
-  where go = mapM f
+  emap f e = case e of
+    MAdd m n -> MAdd (go m) (go n)
+    MFix x -> MFix $ go x
+    MFunAbs v t b -> MFunAbs v t (go b)
+    MFunApp f a -> MFunApp (go f) (go a)
+    MIf0 c t f -> MIf0 (go c) (go t) (go f)
+    MSub m n -> MSub (go m) (go n)
+    MTyAbs v b -> MTyAbs v $ go b
+    MTyApp e t -> MTyApp (go e) t
+    _ -> e
+    where go = emap f
 
 instance ExpMap SExp where
-  emap = mapS
-
-mapS :: (SExp -> SExp) -> SExp -> SExp
-mapS f e = f $ case e of
-  SAdd m n -> SAdd (go m) (go n)
-  SFunAbs v b -> SFunAbs v (go b)
-  SFunApp f a -> SFunApp (go f) (go a)
-  SIf0 c t f -> SIf0 (go c) (go t) (go f)
-  SH _ _ -> e
-  SM _ _ -> e
-  SNum _ -> e
-  SSub m n -> SSub (go m) (go n)
-  SVar _ -> e
-  SWrong _ -> e
-  where go = mapS f
+  emap f e = case e of
+    SAdd m n -> SAdd (go m) (go n)
+    SFunAbs v b -> SFunAbs v (go b)
+    SFunApp f a -> SFunApp (go f) (go a)
+    SIf0 c t f -> SIf0 (go c) (go t) (go f)
+    SSub m n -> SSub (go m) (go n)
+    _ -> e
+    where go = emap f
