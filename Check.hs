@@ -20,60 +20,68 @@ assert :: Bool -> Maybe Bool
 assert True = Just True
 assert False = Nothing
 
+data CheckError = Mismatch {
+    mismatchExp :: SType,
+    mismatchAct :: SType }
+
+class Check a b | a -> b where
+  check :: Context -> a -> Either CheckError b
+
 -- Haskell
 
 checkH :: Context -> HExp -> Maybe SType
-checkH c (HAdd x y) = do
-  t <- checkH c x
-  u <- checkH c y
-  assert (t == Nat && u == Nat)
-  return Nat
-checkH c (HFix x) = do
-  t <- checkH c x
-  case t of
-    Fun p b -> Just p
-    _ -> Nothing
-checkH c (HFunAbs v p e) = do
-  assert (closed p)
-  b <- checkH (sebind v p c) e
-  return (Fun p b)
-checkH c (HFunApp x y) = do
-  opr <- checkH c x
-  opd <- checkH c y
-  case opr of
-    Fun p b -> do
-      assert (p == opd)
-      return b
-    _ -> Nothing
-checkH c (HIf0 g t f) = do
-  gt <- checkH c g
-  tt <- checkH c t
-  ft <- checkH c f
-  assert (gt == Nat && tt == ft)
-  return tt
-checkH c (HM t e) = do
-  assert (closed t)
-  u <- checkM c e
-  assert (t == u)
-  return t
-checkH _ (HNum _) = Just Nat
-checkH c (HSub x y) = do
-  t <- checkH c x
-  assert (t == Nat)
-  u <- checkH c y
-  assert (u == Nat)
-  return Nat
-checkH c (HTyAbs v e) = do
-  t <- checkH (stbind v c) e
-  return (Forall v t)
-checkH c (HTyApp e t) = do
-  assert (closed t)
-  Forall v u <- checkH c e
-  return $ substTy t v u
-checkH c (HVar v) = sbinding v c
-checkH c (HWrong t s) = do
-  assert (closed t)
-  return t
+checkH cxt exp = case exp of
+  HAdd x y -> do
+    t <- checkH cxt x
+    u <- checkH cxt y
+    assert (t == Nat && u == Nat)
+    return Nat
+  HFix x -> do
+    t <- checkH cxt x
+    case t of
+      Fun p b -> Just p
+      _ -> Nothing
+  HFunAbs v p e -> do
+    assert (closed p)
+    b <- checkH (sebind v p cxt) e
+    return (Fun p b)
+  HFunApp x y -> do
+    opr <- checkH cxt x
+    opd <- checkH cxt y
+    case opr of
+      Fun p b -> do
+        assert (p == opd)
+        return b
+      _ -> Nothing
+  HIf0 g t f -> do
+    gt <- checkH cxt g
+    tt <- checkH cxt t
+    ft <- checkH cxt f
+    assert (gt == Nat && tt == ft)
+    return tt
+  HM t e -> do
+    assert (closed t)
+    u <- checkM cxt e
+    assert (t == u)
+    return t
+  HNum _ -> Just Nat
+  HSub x y -> do
+    t <- checkH cxt x
+    assert (t == Nat)
+    u <- checkH cxt y
+    assert (u == Nat)
+    return Nat
+  HTyAbs v e -> do
+    t <- checkH (stbind v cxt) e
+    return (Forall v t)
+  HTyApp e t -> do
+    assert (closed t)
+    Forall v u <- checkH cxt e
+    return $ substTy t v u
+  HVar v -> sbinding v cxt
+  HWrong t s -> do
+    assert (closed t)
+    return t
 
 -- ML
 
