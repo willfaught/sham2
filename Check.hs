@@ -137,5 +137,40 @@ checkM cxt exp = case exp of
     assert (closed cxt t)
     return t
 
+-- Scheme
+
 checkS :: Context -> SExp -> Maybe DType
-checkS cxt exp = undefined
+checkS cxt exp = case exp of
+  SAdd x y -> do
+    checkS cxt x
+    checkS cxt y
+    return DType
+  SFunAbs v e -> do
+    checkS (dbind v DType cxt) e
+    return DType
+  SFunApp x y -> do
+    checkS cxt x
+    checkS cxt y
+    return DType
+  SH t e -> do
+    assert (closed cxt t)
+    e' <- checkH cxt e
+    assert (t == e')
+    return DType
+  SIf0 g t f -> do
+    checkS cxt g
+    checkS cxt t
+    checkS cxt f
+    return DType
+  SM t e -> do
+    assert (closed cxt t)
+    e' <- checkM cxt e
+    assert (t == e')
+    return DType
+  SNum _ -> return DType
+  SSub x y -> do
+    checkS cxt x
+    checkS cxt y
+    return DType
+  SVar v -> dbinding v cxt
+  SWrong s -> return DType
