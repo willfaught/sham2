@@ -1,5 +1,6 @@
-module Reduce (reduceH, reduceM, reduceFullH, reduceFullM) where
+module Reduce (reduce, reduceFull) where
 
+import Data.Either
 import Subst
 import Syntax
 
@@ -9,107 +10,116 @@ unlabel (Fun x y) = Fun (unlabel x) (unlabel y)
 unlabel (Forall x y) = Forall x (unlabel y)
 unlabel x = x
 
+-- Reduce
+
+class (Show t, Eq t) => Reduce t where
+  reduce :: t -> Reduction t
+
+instance Reduce HExp where
+  reduce = reduceH
+
+instance Reduce MExp where
+  reduce = reduceM
+
+-- ReduceFull
+
+class Reduce t => ReduceFull t where
+  reduceFull :: t -> Reduction t
+
+instance ReduceFull HExp where
+  reduceFull = reduceFullH
+
+instance ReduceFull MExp where
+  reduceFull = reduceFullM
+
+-- Values
+
 valueH :: HExp -> Bool
---valueH (HCon _ _) = True
 valueH (HFunAbs _ _ _) = True
 valueH (HNum _) = True
 valueH (HTyAbs _ _) = True
 valueH _ = False
 
 valueM :: MExp -> Bool
---valueM (MCon _ _) = True
 valueM (MFunAbs _ _ _) = True
 valueM (MNum _) = True
 valueM (MTyAbs _ _) = True
 valueM _ = False
 
-reduceFullH :: HExp -> HExp
-reduceFullH x = case reduceH x of
-  Just x' -> reduceFullH x'
-  Nothing -> x
+-- Full reductions
 
-reduceFullM :: MExp -> MExp
-reduceFullM x = case reduceM x of
-  Just x' -> reduceFullM x'
-  Nothing -> x
+reduceFullH :: HExp -> Reduction HExp
+reduceFullH x = case reduce x of
+  Reduced x' -> reduceFullH x'
+  Unreduced -> Unreduced
+  Error s -> Error s
 
-reduceH :: HExp -> Maybe HExp
-reduceH (HAdd (HNum x) (HNum y)) = return . HNum $ x + y
-reduceH (HAdd x y) | not $ valueH x = do
-  x' <- reduceH x
-  return $ HAdd x' y
-reduceH (HAdd x y) = do
-  y' <- reduceH y
-  return $ HAdd x y'
-reduceH f @ (HFix (HFunAbs v _ b)) = return $ substExpH f v b
-reduceH (HFix x) = do
-  x' <- reduceH x
-  return $ HFix x'
-reduceH (HFunApp (HFunAbs v t b) a) = return $ substExpH a v b
-reduceH (HFunApp x y) = do
-  x' <- reduceH x
-  return $ HFunApp x' y
---reduceH (HField fn (HCon cn f)) = 
-reduceH (HIf0 (HNum 0) t _) = Just t
-reduceH (HIf0 (HNum _) _ f) = Just f
-reduceH (HIf0 x t f) = do
-  x' <- reduceH x
-  return $ HIf0 x' t f
-reduceH (HM t (MH u e)) = return e
-reduceH (HM Nat (MNum n)) = return $ HNum n
-reduceH (HM (Fun p r) f @ (MFunAbs v t b)) =
-  return $ HFunAbs v p (HM r (MFunApp f (MH p (HVar v))))
-reduceH (HM (Forall v t) (MTyAbs w e)) = return $ HTyAbs v (HM t e)
-reduceH (HSub (HNum x) (HNum y)) = Just . HNum $ x + y
-reduceH (HSub x y) | not $ valueH x = do
-  x' <- reduceH x
-  return $ HSub x' y
-reduceH (HSub x y) = do
-  y' <- reduceH y
-  return $ HSub x y'
-reduceH (HTyApp (HTyAbs v b) t) = return $ substTyExpH t v b
-reduceH (HTyApp x y) = do
-  x' <- reduceH x
-  return $ HTyApp x' y
-reduceH (HWrong _ s) = error s
-reduceH _ = Nothing
+reduceFullM :: MExp -> Reduction MExp
+reduceFullM x = case reduce x of
+  Reduced x' -> reduceFullM x'
+  Unreduced -> Unreduced
+  Error s -> Error s
 
-reduceM :: MExp -> Maybe MExp
-reduceM (MAdd (MNum x) (MNum y)) = return . MNum $ x + y
-reduceM (MAdd x y) | not $ valueM x = do
-  x' <- reduceM x
-  return $ MAdd x' y
-reduceM (MAdd x y) = do
-  y' <- reduceM y
-  return $ MAdd x y'
-reduceM f @ (MFix (MFunAbs v _ b)) = return $ substExpM f v b
-reduceM (MFix x) = do
-  x' <- reduceM x
-  return $ MFix x'
-reduceM (MFunApp (MFunAbs v t b) a) = return $ substExpM a v b
-reduceM (MFunApp x y) = do
-  x' <- reduceM x
-  return $ MFunApp x' y
---reduceM (MField fn (MCon cn f)) =
-reduceM (MH Nat (HNum n)) = return $ MNum n
-reduceM (MH (Fun p r) f @ (HFunAbs v t b)) =
-  return $ MFunAbs v p (MH r (HFunApp f (HM p (MVar v))))
-reduceM (MH (Forall v t) (HTyAbs w e)) = return $ MTyAbs v (MH t e)
-reduceM (MIf0 (MNum 0) t _) = Just t
-reduceM (MIf0 (MNum _) _ f) = Just f
-reduceM (MIf0 x t f) = do
-  x' <- reduceM x
-  return $ MIf0 x' t f
-reduceM (MSub (MNum x) (MNum y)) = Just . MNum $ x + y
-reduceM (MSub x y) | not $ valueM x = do
-  x' <- reduceM x
-  return $ MSub x' y
-reduceM (MSub x y) = do
-  y' <- reduceM y
-  return $ MSub x y'
-reduceM (MTyApp (MTyAbs v b) t) = return $ substTyExpM t v b
-reduceM (MTyApp x y) = do
-  x' <- reduceM x
-  return $ MTyApp x' y
-reduceM (MWrong _ s) = error s
-reduceM _ = Nothing
+-- Reductions
+
+-- Haskell
+
+data Reduction e = Reduced e | Unreduced | Error String deriving (Show, Eq)
+
+instance Monad Reduction where
+  x >>= f = case x of
+    Reduced e -> f e
+    Unreduced -> Unreduced
+    Error s -> Error s
+  return = Reduced
+  fail = Error
+
+reduceH :: HExp -> Reduction HExp
+reduceH exp = case exp of
+  HAdd (HNum x) (HNum y) -> return . HNum $ x + y
+  HAdd x y | not $ valueH x -> do
+    x' <- reduceH x
+    return $ HAdd x' y
+  HAdd x y -> do
+    y' <- reduceH y
+    return $ HAdd x y'
+  HFix (HFunAbs v _ b) -> return $ substExp exp v b
+  HFix x -> do
+    x' <- reduceH x
+    return $ HFix x'
+  HFunApp (HFunAbs v t b) a -> return $ substExp a v b
+  HFunApp x y -> do
+    x' <- reduceH x
+    return $ HFunApp x' y
+  HIf0 (HNum n) t f -> return $ if n == 0 then t else f
+  HIf0 x t f -> do
+    x' <- reduceH x
+    return $ HIf0 x' t f
+  HM _ (MH _ e) -> return e
+  HM _ (MNum n) -> return $ HNum n
+  HM (Fun p r) f @ (MFunAbs v t b) -> return $ HFunAbs v p (HM r (MFunApp f (MH p (HVar v))))
+  HM (Forall v t) (MTyAbs w e) -> return $ HTyAbs v (HM t e)
+  HS _ (SH _ e) -> return e
+  HS Nat (SNum n) -> return $ HNum n
+  HS Nat _ -> return $ HWrong Nat "Not a number"
+  HS (Label t _) _ -> return $ HWrong t "Parametricity violated"
+  HS (Fun p r) f @ (SFunAbs v b) -> return $ HFunAbs v (unlabel p) (HS r (SFunApp f (SH p (HVar v))))
+  HS t @ (Fun _ _) _ -> return $ HWrong (unlabel t) "Not a function"
+  HSub (HNum x) (HNum y) -> return . HNum $ x + y
+  HSub x y | not $ valueH x -> do
+    x' <- reduceH x
+    return $ HSub x' y
+  HSub x y -> do
+    y' <- reduceH y
+    return $ HSub x y'
+  HTyApp (HTyAbs v b) t -> return $ substTyExp t v b
+  HTyApp (HS (Forall v t) e) u -> return $ HS (substTy (Label u 0) v t) e
+  HTyApp x y -> do
+    x' <- reduceH x
+    return $ HTyApp x' y
+  HWrong _ s -> fail s
+  _ -> Unreduced
+
+-- ML
+
+reduceM = undefined
