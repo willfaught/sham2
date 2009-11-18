@@ -1,14 +1,16 @@
 module Reduce (reduce, reduceFull) where
 
+import Control.Monad.State
 import Data.Either
 import Subst
 import Syntax
 
 unlabel :: SType -> SType
-unlabel (Label t _) = t
-unlabel (Fun x y) = Fun (unlabel x) (unlabel y)
-unlabel (Forall x y) = Forall x (unlabel y)
-unlabel x = x
+unlabel t = case t of
+  Label u _ -> u
+  Fun p r -> Fun (unlabel p) (unlabel r)
+  Forall v b -> Forall v (unlabel b)
+  _ -> t
 
 -- Reduce
 
@@ -48,7 +50,7 @@ valueM _ = False
 
 -- Full reductions
 
-reduceFullH :: HExp -> Reduction HExp
+{-reduceFullH :: HExp -> Reduction HExp
 reduceFullH x = case reduce x of
   Reduced x' -> reduceFullH x'
   Unreduced -> Unreduced
@@ -59,20 +61,24 @@ reduceFullM x = case reduce x of
   Reduced x' -> reduceFullM x'
   Unreduced -> Unreduced
   Error s -> Error s
+-}
+
+reduceFullH = undefined
+
+reduceFullM = undefined
 
 -- Reductions
 
--- Haskell
-
-data Reduction e = Reduced e | Unreduced | Error String deriving (Show, Eq)
+newtype Reduction e = Reduction (Either String e) deriving (Show, Eq)
 
 instance Monad Reduction where
-  x >>= f = case x of
-    Reduced e -> f e
-    Unreduced -> Unreduced
-    Error s -> Error s
-  return = Reduced
-  fail = Error
+  Reduction x >>= f = case x of
+    Left s -> Reduction $ Left s
+    Right e -> f e
+  return = Reduction . Right
+  fail = Reduction . Left
+
+-- Haskell
 
 reduceH :: HExp -> Reduction HExp
 reduceH exp = case exp of
@@ -118,7 +124,7 @@ reduceH exp = case exp of
     x' <- reduceH x
     return $ HTyApp x' y
   HWrong _ s -> fail s
-  _ -> Unreduced
+  _ -> error $ "Irreducible: " ++ show exp
 
 -- ML
 
