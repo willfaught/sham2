@@ -12,28 +12,6 @@ unlabel t = case t of
   Forall v b -> Forall v (unlabel b)
   _ -> t
 
--- Reduce
-
-class (Show t, Eq t) => Reduce t where
-  reduce :: t -> Reduction t
-
-instance Reduce HExp where
-  reduce = reduceH
-
-instance Reduce MExp where
-  reduce = reduceM
-
--- ReduceFull
-
-class Reduce t => ReduceFull t where
-  reduceFull :: t -> Reduction t
-
-instance ReduceFull HExp where
-  reduceFull = reduceFullH
-
-instance ReduceFull MExp where
-  reduceFull = reduceFullM
-
 -- Values
 
 valueH :: HExp -> Bool
@@ -48,39 +26,45 @@ valueM (MNum _) = True
 valueM (MTyAbs _ _) = True
 valueM _ = False
 
--- Full reductions
+-- ReduceFull
 
-{-reduceFullH :: HExp -> Reduction HExp
-reduceFullH x = case reduce x of
-  Reduced x' -> reduceFullH x'
-  Unreduced -> Unreduced
-  Error s -> Error s
+class Reduce t => ReduceFull t where
+  reduceFull :: t -> Either String t
 
-reduceFullM :: MExp -> Reduction MExp
-reduceFullM x = case reduce x of
-  Reduced x' -> reduceFullM x'
-  Unreduced -> Unreduced
-  Error s -> Error s
--}
+instance ReduceFull HExp where
+  reduceFull e = case reduce e of
+    Just e' -> case e' of
+      Left s -> Left s
+      Right e -> reduceFull e
+    Nothing -> Right e
 
-reduceFullH = undefined
+-- Reduce
 
-reduceFullM = undefined
+class (Show t, Eq t) => Reduce t where
+  reduce :: t -> Maybe (Either String t)
 
--- Reductions
+instance Reduce HExp where
+  reduce e = let Reduction r = evalStateT (reduceH e) 1 in r
 
-newtype Reduction e = Reduction (Either String e) deriving (Show, Eq)
+-- Reduction
+
+newtype Reduction e = Reduction (Maybe (Either String e)) deriving (Show, Eq)
 
 instance Monad Reduction where
   Reduction x >>= f = case x of
-    Left s -> Reduction $ Left s
-    Right e -> f e
-  return = Reduction . Right
-  fail = Reduction . Left
+    Just x' -> case x' of
+      Left s -> Reduction . Just . Left $ s
+      Right e -> f e
+    Nothing -> Reduction Nothing
+  return = Reduction . Just . Right
+  fail = Reduction . Just . Left
+
+irreducible :: StateT Int Reduction e
+irreducible = StateT $ \ s -> Reduction Nothing
 
 -- Haskell
 
-reduceH :: HExp -> Reduction HExp
+reduceH :: HExp -> StateT Int Reduction HExp
 reduceH exp = case exp of
   HAdd (HNum x) (HNum y) -> return . HNum $ x + y
   HAdd x y | not $ valueH x -> do
@@ -124,8 +108,4 @@ reduceH exp = case exp of
     x' <- reduceH x
     return $ HTyApp x' y
   HWrong _ s -> fail s
-  _ -> error $ "Irreducible: " ++ show exp
-
--- ML
-
-reduceM = undefined
+  _ -> irreducible
