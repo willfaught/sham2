@@ -14,17 +14,25 @@ unlabel t = case t of
 
 -- Values
 
-valueH :: HExp -> Bool
-valueH (HFunAbs _ _ _) = True
-valueH (HNum _) = True
-valueH (HTyAbs _ _) = True
-valueH _ = False
+class Value t where
+  value :: t -> Bool
 
-valueM :: MExp -> Bool
-valueM (MFunAbs _ _ _) = True
-valueM (MNum _) = True
-valueM (MTyAbs _ _) = True
-valueM _ = False
+instance Value HExp where
+  value e = case e of
+    HFunAbs _ _ _ -> True
+    HNum _ -> True
+    HTyAbs _ _ -> True
+    _ -> False
+
+instance Value MExp where
+  value e = case e of
+    MFunAbs _ _ _ -> True
+    MNum _ -> True
+    MTyAbs _ _ -> True
+    _ -> False
+
+instance Value SExp where
+  value = undefined
 
 -- ReduceFull
 
@@ -67,7 +75,7 @@ irreducible = StateT $ \ s -> Reduction Nothing
 reduceH :: HExp -> StateT Int Reduction HExp
 reduceH exp = case exp of
   HAdd (HNum x) (HNum y) -> return . HNum $ x + y
-  HAdd x y | not $ valueH x -> do
+  HAdd x y | not $ value x -> do
     x' <- reduceH x
     return $ HAdd x' y
   HAdd x y -> do
@@ -85,25 +93,30 @@ reduceH exp = case exp of
   HIf0 x t f -> do
     x' <- reduceH x
     return $ HIf0 x' t f
-  HM _ (MH _ e) -> return e
-  HM _ (MNum n) -> return $ HNum n
-  HM (Fun p r) f @ (MFunAbs v t b) -> return $ HFunAbs v p (HM r (MFunApp f (MH p (HVar v))))
-  HM (Forall v t) (MTyAbs w e) -> return $ HTyAbs v (HM t e)
-  HS _ (SH _ e) -> return e
+  HM t (MH t' e) | t == t' -> return e
+  HM Lump (MS Lump e) | value e -> return $ HS Lump e
+  HM Nat (MNum n) -> return $ HNum n
+  HM (Fun p r) f @ (MFunAbs v t b) | p == t -> return $ HFunAbs v p (HM r (MFunApp f (MH p (HVar v))))
+  HM (Forall v t) (MTyAbs v' e) | v == v'-> return $ HTyAbs v (HM t e)
+  HM f @ (Forall v t) (MS (Forall v' t') e) | v == v' && t == t' && value e -> return $ HS f e
+  HS t (SH t' e) | t == t' -> return e
   HS Nat (SNum n) -> return $ HNum n
-  HS Nat _ -> return $ HWrong Nat "Not a number"
-  HS (Label t _) _ -> return $ HWrong t "Parametricity violated"
+  HS Nat e | value e -> return $ HWrong Nat "Not a number"
+  HS (Label t _) e | value e -> return $ HWrong t "Parametricity violated"
   HS (Fun p r) f @ (SFunAbs v b) -> return $ HFunAbs v (unlabel p) (HS r (SFunApp f (SH p (HVar v))))
-  HS t @ (Fun _ _) _ -> return $ HWrong (unlabel t) "Not a function"
-  HSub (HNum x) (HNum y) -> return . HNum $ x + y
-  HSub x y | not $ valueH x -> do
+  HS t @ (Fun _ _) e | value e -> return $ HWrong (unlabel t) "Not a function"
+  HSub (HNum x) (HNum y) -> return . HNum $ max 0 $ x - y
+  HSub x y | not $ value x -> do
     x' <- reduceH x
     return $ HSub x' y
   HSub x y -> do
     y' <- reduceH y
     return $ HSub x y'
   HTyApp (HTyAbs v b) t -> return $ substTyExp t v b
-  HTyApp (HS (Forall v t) e) u -> return $ HS (substTy (Label u 0) v t) e
+  HTyApp (HS (Forall v t) e) t' | value e -> do
+    label <- get
+    put (label + 1)
+    return $ HS (substTy (Label t' label) v t) e
   HTyApp x y -> do
     x' <- reduceH x
     return $ HTyApp x' y
