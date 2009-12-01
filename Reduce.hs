@@ -12,27 +12,37 @@ unlabel t = case t of
   Forall v b -> Forall v (unlabel b)
   _ -> t
 
--- Values
+-- Value
 
 class Value t where
-  value :: t -> Bool
+  unforcedValue :: t -> Bool
+  forcedValue :: t -> Bool
 
 instance Value HExp where
-  value e = case e of
+  unforcedValue exp = case exp of
     HFunAbs _ _ _ -> True
     HNum _ -> True
     HTyAbs _ _ -> True
+    HS Lump e | unforcedValue e -> True
+    HS (Forall _ _) e | unforcedValue e -> True
     _ -> False
+  forcedValue = undefined
 
 instance Value MExp where
-  value e = case e of
+  unforcedValue exp = case exp of
+    MH _ _ -> True
+    _ -> forcedValue exp
+  forcedValue exp = case exp of
     MFunAbs _ _ _ -> True
     MNum _ -> True
     MTyAbs _ _ -> True
+    MS Lump e | unforcedValue e -> True
+    MS (Forall _ _) e | unforcedValue e -> True
     _ -> False
 
 instance Value SExp where
-  value = undefined
+  unforcedValue _ = True
+  forcedValue _ = True
 
 -- ReduceFull
 
@@ -75,7 +85,7 @@ irreducible = StateT $ \ s -> Reduction Nothing
 reduceH :: HExp -> StateT Int Reduction HExp
 reduceH exp = case exp of
   HAdd (HNum x) (HNum y) -> return . HNum $ x + y
-  HAdd x y | not $ value x -> do
+  HAdd x y | not $ unforcedValue x -> do
     x' <- reduceH x
     return $ HAdd x' y
   HAdd x y -> do
@@ -94,26 +104,32 @@ reduceH exp = case exp of
     x' <- reduceH x
     return $ HIf0 x' t f
   HM t (MH t' e) | t == t' -> return e
-  HM Lump (MS Lump e) | value e -> return $ HS Lump e
+  HM Lump (MS Lump e) | unforcedValue e -> return $ HS Lump e
   HM Nat (MNum n) -> return $ HNum n
   HM (Fun p r) f @ (MFunAbs v t b) | p == t -> return $ HFunAbs v p (HM r (MFunApp f (MH p (HVar v))))
   HM (Forall v t) (MTyAbs v' e) | v == v'-> return $ HTyAbs v (HM t e)
-  HM f @ (Forall v t) (MS (Forall v' t') e) | v == v' && t == t' && value e -> return $ HS f e
+  HM f @ (Forall v t) (MS (Forall v' t') e) | v == v' && t == t' && unforcedValue e -> return $ HS f e
+  HM t e | not $ unforcedValue e -> do
+    e' <- reduceM e
+    return $ HM t e'
   HS t (SH t' e) | t == t' -> return e
   HS Nat (SNum n) -> return $ HNum n
-  HS Nat e | value e -> return $ HWrong Nat "Not a number"
-  HS (Label t _) e | value e -> return $ HWrong t "Parametricity violated"
+  HS Nat e | unforcedValue e -> return $ HWrong Nat "Not a number"
+  HS (Label t _) e | unforcedValue e -> return $ HWrong t "Parametricity violated"
   HS (Fun p r) f @ (SFunAbs v b) -> return $ HFunAbs v (unlabel p) (HS r (SFunApp f (SH p (HVar v))))
-  HS t @ (Fun _ _) e | value e -> return $ HWrong (unlabel t) "Not a function"
+  HS t @ (Fun _ _) e | unforcedValue e -> return $ HWrong (unlabel t) "Not a function"
+  HS t e | not $ unforcedValue e -> do
+    e' <- reduceS e
+    return $ HS t e'
   HSub (HNum x) (HNum y) -> return . HNum $ max 0 $ x - y
-  HSub x y | not $ value x -> do
+  HSub x y | not $ unforcedValue x -> do
     x' <- reduceH x
     return $ HSub x' y
   HSub x y -> do
     y' <- reduceH y
     return $ HSub x y'
   HTyApp (HTyAbs v b) t -> return $ substTyExp t v b
-  HTyApp (HS (Forall v t) e) t' | value e -> do
+  HTyApp (HS (Forall v t) e) t' | unforcedValue e -> do
     label <- get
     put (label + 1)
     return $ HS (substTy (Label t' label) v t) e
@@ -122,3 +138,73 @@ reduceH exp = case exp of
     return $ HTyApp x' y
   HWrong _ s -> fail s
   _ -> irreducible
+
+-- ML
+
+reduceM :: MExp -> StateT Int Reduction MExp
+reduceM exp = case exp of
+  MAdd (MNum x) (MNum y) -> return . MNum $ x + y
+  MAdd x y | not $ forcedValue x -> do
+    x' <- reduceForceM x
+    return $ MAdd x' y
+  MAdd x y -> do
+    y' <- reduceForceM y
+    return $ MAdd x y'
+  MFix (MFunAbs v _ b) -> return $ substExp exp v b
+  MFix x -> do
+    x' <- reduceForceM x
+    return $ MFix x'
+  MFunApp (MFunAbs v t b) a -> return $ substExp a v b
+  MFunApp x y | not $ forcedValue x -> do
+    x' <- reduceForceM x
+    return $ MFunApp x' y
+  MFunApp x y -> do
+    y' <- reduceForceM y
+    return $ MFunApp x y'
+  MIf0 (MNum n) t f -> return $ if n == 0 then t else f
+  MIf0 x t f -> do
+    x' <- reduceForceM x
+    return $ MIf0 x' t f
+  MH t (HM t' e) | t == t' -> return e
+  MH Lump (HS Lump e) | unforcedValue e -> return $ MS Lump e
+  MH Nat (HNum n) -> return $ MNum n
+  MH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ MFunAbs v p (MH r (HFunApp f (HM p (MVar v))))
+  MH (Forall v t) (HTyAbs v' e) | v == v'-> return $ MTyAbs v (MH t e)
+  MH f @ (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforcedValue e -> return $ MS f e
+  MS t (SM t' e) | t == t' -> return e
+  MS Nat (SNum n) -> return $ MNum n
+  MS Nat e | unforcedValue e -> return $ MWrong Nat "Not a number"
+  MS (Label t _) e | unforcedValue e -> return $ MWrong t "Parametricity violated"
+  MS (Fun p r) f @ (SFunAbs v b) -> return $ MFunAbs v (unlabel p) (MS r (SFunApp f (SM p (MVar v))))
+  MS t @ (Fun _ _) e | unforcedValue e -> return $ MWrong (unlabel t) "Not a function"
+  MS t e | not $ unforcedValue e -> do
+    e' <- reduceS e
+    return $ MS t e'
+  MSub (MNum x) (MNum y) -> return . MNum $ max 0 $ x - y
+  MSub x y | not $ forcedValue x -> do
+    x' <- reduceForceM x
+    return $ MSub x' y
+  MSub x y -> do
+    y' <- reduceForceM y
+    return $ MSub x y'
+  MTyApp (MTyAbs v b) t -> return $ substTyExp t v b
+  MTyApp (MS (Forall v t) e) t' | unforcedValue e -> do
+    label <- get
+    put (label + 1)
+    return $ MS (substTy (Label t' label) v t) e
+  MTyApp x y -> do
+    x' <- reduceForceM x
+    return $ MTyApp x' y
+  MWrong _ s -> fail s
+  _ -> irreducible
+
+reduceForceM :: MExp -> StateT Int Reduction MExp
+reduceForceM exp = case exp of
+  MH t e | unforcedValue e -> do
+    e' <- reduceH e
+    return $ MH t e'
+  _ -> reduceM exp
+
+-- Scheme
+
+reduceS = undefined
