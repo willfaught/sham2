@@ -1,7 +1,7 @@
-module Haskell (parseH, hexp) where
+module Parse.Haskell (parseH, hexp) where
 
+import Parse.Types
 import Prelude hiding (exp)
-import TypeParser
 import Syntax
 import Text.ParserCombinators.Parsec
 
