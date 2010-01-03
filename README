@@ -1,1 +1,42 @@
-A work in progress. When it's more useable, I'll add instructions.
+SCHEME, HASKELL, AND ML
+
+1 SYNTAX
+
+1.1 HASKELL AND ML TYPES
+
+Types are defined as:
+
+  * "N" (natural number) is a type.
+  * "L" (lump) is a type.
+  * "X" (variable) is a type, where X is a metavariable that ranges over all type variables. The first character must be a lowercase letter. It may be followed by zero or more lowercase letters and digits. These may be followed by zero or more primes. For example: "x", "xx", "x1", "x'", "x2'", and "foo2bar''".
+  * "M ^ N" (label) is a type if M is a type and N is a natural number.
+  * "M -> N" (function) is a type if M and N are types.
+  * "A X . M" (forall) is a type if M is a type.
+
+Examples:
+
+  * N
+  * L
+  * x
+  * N -> N
+  * N -> (N -> N)
+  * (N -> N) -> N
+  * (N -> N) -> (N -> N)
+  * N ^ 0
+  * (N ^ 0) ^ 1
+  * A x . N
+  * A x . (A y . z)
+  * (a1 -> a2) -> (a' ^ 11)
+
+Outermost type terms may not be contained in parentheses.  Nested natural number, lump, and variable types may not be contained in parentheses. All other types must be contained in parentheses for unambiguity.
+
+For example:
+
+  * (N) [incorrect]
+  * (L) [incorrect]
+  * (foo) [incorrect]
+  * (N -> N) [incorrect]
+
+1.2 HASKELL
+
+
