@@ -1,6 +1,5 @@
 module HaskellParser (parseH, hexp) where
 
-import MLParser
 import Prelude hiding (exp)
 import TypeParser
 import Syntax
@@ -72,8 +71,8 @@ hm = do
   many1 space
   t <- stype
   many1 space
-  e <- mexp
-  return $ HM t e
+  e <- char '*'--mexp
+  return $ HM Nat (MNum 0)
 
 fix :: Parser HExp
 fix = do
