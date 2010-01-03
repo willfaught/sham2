@@ -8,7 +8,7 @@ Types are defined as:
 
   * "N" (natural number) is a type.
   * "L" (lump) is a type.
-  * "X" (variable) is a type, where X is a metavariable that ranges over all type variables. The first character must be a lowercase letter. It may be followed by zero or more lowercase letters and digits. These may be followed by zero or more primes. For example: "x", "xx", "x1", "x'", "x2'", and "foo2bar''".
+  * "X" (variable) is a type, where X is a metavariable that ranges over all type variables.  The first character must be a lowercase letter.  It may be followed by zero or more lowercase letters and digits.  These may be followed by zero or more primes.  For example: "x", "xx", "x1", "x'", "x2'", and "foo2bar''".
   * "M ^ N" (label) is a type if M is a type and N is a natural number.
   * "M -> N" (function) is a type if M and N are types.
   * "A X . M" (forall) is a type if M is a type.
@@ -28,7 +28,7 @@ Examples:
   * A x . (A y . z)
   * (a1 -> a2) -> (a' ^ 11)
 
-Outermost type terms may not be contained in parentheses.  Nested natural number, lump, and variable types may not be contained in parentheses. All other types must be contained in parentheses for unambiguity.
+Outermost type terms may not be contained in parentheses.  Nested natural number, lump, and variable types may not be contained in parentheses.  All other types must be contained in parentheses for unambiguity.
 
 For example:
 
@@ -38,5 +38,19 @@ For example:
   * (N -> N) [incorrect]
 
 1.2 HASKELL
+
+...
+
+2 TYPE CHECKING
+
+Use the checkH, checkM, and checkS functions in the Check module.
+
+For example, to type check a closed Haskell expression:
+
+  checkH empty exp
+
+where "empty" is Context.empty and "exp" is the closed Haskell expression. Open Haskell expressions can be type checked by supplying the corresponding context. See the Context module.
+
+3 REDUCTION
 
 
