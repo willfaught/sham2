@@ -1,4 +1,4 @@
-module ParseTypes (stype, tvar) where
+module Types (stype, tvar) where
 
 import Syntax
 import Text.ParserCombinators.Parsec hiding (label)

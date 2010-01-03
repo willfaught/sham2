@@ -1,4 +1,4 @@
-module HaskellParser (parseH, hexp) where
+module Haskell (parseH, hexp) where
 
 import Prelude hiding (exp)
 import TypeParser

@@ -154,7 +154,7 @@ reduceM exp = case exp of
   MFix x -> do
     x' <- reduceForceM x
     return $ MFix x'
-  MFunApp (MFunAbs v t b) a -> return $ substExp a v b
+  MFunApp (MFunAbs v t b) a | unforcedValue a -> return $ substExp a v b
   MFunApp x y | not $ forcedValue x -> do
     x' <- reduceForceM x
     return $ MFunApp x' y
@@ -165,7 +165,7 @@ reduceM exp = case exp of
   MIf0 x t f -> do
     x' <- reduceForceM x
     return $ MIf0 x' t f
-  MH t (HM t' e) | t == t' -> return e
+  --MH t (HM t' e) | t == t' -> return e
   MH Lump (HS Lump e) | unforcedValue e -> return $ MS Lump e
   MH Nat (HNum n) -> return $ MNum n
   MH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ MFunAbs v p (MH r (HFunApp f (HM p (MVar v))))
@@ -207,4 +207,58 @@ reduceForceM exp = case exp of
 
 -- Scheme
 
-reduceS = undefined
+reduceS :: SExp -> StateT Int Reduction SExp
+reduceS exp = case exp of
+  SAdd (SNum x) (SNum y) -> return . SNum $ x + y
+  SAdd x y | not $ forcedValue x -> do
+    x' <- reduceForceS x
+    return $ SAdd x' y
+  SAdd x y | not $ forcedValue y -> do
+    y' <- reduceForceS y
+    return $ SAdd x y'
+  SAdd _ _ -> return $ HWrong "Not a number"
+  SFunApp (SFunAbs v e) e' | unforcedValue e' -> return $ substExp e' v e
+  SFunApp x y | not $ forcedValue x -> do
+    x' <- reduceForceS x
+    return $ SFunApp x' y
+  SFunApp x y | not $ unforcedValue y -> do
+    y' <- reduceForceS y
+    return $ SFunApp x y'
+  SFunApp _ _ -> return $ HWrong "Not a function"
+  SIf0 (SNum n) t f -> return $ if n == 0 then t else f
+  SIf0 x t f | not $ forcedValue x -> do
+    x' <- reduceForceS x
+    return $ SIf0 x' t f
+  SIf0 _ _ _ -> return $ HWrong "Not a number"
+  --SH t (HS t' e) | t == t' -> return e
+  SH Lump (HS Lump e) | unforcedValue e -> return e
+  SH Nat (HNum n) -> return $ SNum n
+  SH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ SFunAbs v p (SH r (HFunApp f (HS p (SVar v))))
+  SH (Forall v t) (HTyAbs v' e) | v == v'-> return $ STyAbs v (SH t e)
+  SH f @ (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforcedValue e -> return $ SS f e
+  SM t (SM t' e) | t == t' -> return e
+  SM Nat (SNum n) -> return $ SNum n
+  SM Nat e | unforcedValue e -> return $ SWrong Nat "Not a number"
+  SM (Label t _) e | unforcedValue e -> return $ SWrong t "Parametricity violated"
+  SM (Fun p r) f @ (SFunAbs v b) -> return $ SFunAbs v (unlabel p) (SM r (SFunApp f (SM p (SVar v))))
+  SM t @ (Fun _ _) e | unforcedValue e -> return $ SWrong (unlabel t) "Not a function"
+  SM t e | not $ unforcedValue e -> do
+    e' <- reduceS e
+    return $ SM t e'
+  SSub (SNum x) (SNum y) -> return . SNum $ max 0 $ x - y
+  SSub x y | not $ forcedValue x -> do
+    x' <- reduceForceS x
+    return $ SSub x' y
+  SSub x y | not $ forcedValue y -> do
+    y' <- reduceForceS y
+    return $ SSub x y'
+  SSub _ _ -> return $ HWrong "Not a number"
+  SWrong _ s -> fail s
+  _ -> irreducible
+
+reduceForceS :: SExp -> StateT Int Reduction SExp
+reduceForceS exp = case exp of
+  SH t e | unforcedValue e -> do
+    e' <- reduceH e
+    return $ SH t e'
+  _ -> reduceS exp
