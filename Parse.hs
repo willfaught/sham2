@@ -112,7 +112,7 @@ hexp' nested = try (wrap hfunapp)
       return t
 
 hadd :: Parser HExp
-hadd = parser <?> "addition" where
+hadd = parser <?> "Haskell addition" where
   parser = do
     char '+'
     spaces
@@ -122,7 +122,7 @@ hadd = parser <?> "addition" where
     return $ HAdd e1 e2
 
 hfix :: Parser HExp
-hfix = parser <?> "hfixed-point operation" where
+hfix = parser <?> "Haskell fixed-point operation" where
   parser = do
     string "hfix"
     many1 space
@@ -130,7 +130,7 @@ hfix = parser <?> "hfixed-point operation" where
     return $ HFix e
 
 hfunabs :: Parser HExp
-hfunabs = parser <?> "function abstraction" where
+hfunabs = parser <?> "Haskell function abstraction" where
   parser = do
     char '\\'
     spaces
@@ -146,7 +146,7 @@ hfunabs = parser <?> "function abstraction" where
     return $ HFunAbs x t e
 
 hfunapp :: Parser HExp
-hfunapp = parser <?> "function application" where
+hfunapp = parser <?> "Haskell function application" where
   parser = do
     e1 <- hexp' True
     many1 space
@@ -154,7 +154,7 @@ hfunapp = parser <?> "function application" where
     return $ HFunApp e1 e2
 
 hif0 :: Parser HExp
-hif0 = parser <?> "condition" where
+hif0 = parser <?> "Haskell condition" where
   parser = do
     string "hif0"
     many1 space
@@ -166,7 +166,7 @@ hif0 = parser <?> "condition" where
     return $ HIf0 c t f
 
 hm :: Parser HExp
-hm = parser <?> "HM guard" where
+hm = parser <?> "Haskell ML guard" where
   parser = do
     string "HM"
     many1 space
@@ -176,13 +176,13 @@ hm = parser <?> "HM guard" where
     return $ HM t e
 
 hnum :: Parser HExp
-hnum = parser <?> "natural number" where
+hnum = parser <?> "Haskell natural number" where
   parser = do
     n <- many1 digit
     return $ HNum (read n)
 
 hs :: Parser HExp
-hs = parser <?> "HS guard" where
+hs = parser <?> "Haskell Scheme guard" where
   parser = do
     string "HS"
     many1 space
@@ -192,7 +192,7 @@ hs = parser <?> "HS guard" where
     return $ HS t e
 
 hsub :: Parser HExp
-hsub = parser <?> "subtraction" where
+hsub = parser <?> "Haskell subtraction" where
   parser = do
     char '-'
     spaces
@@ -202,7 +202,7 @@ hsub = parser <?> "subtraction" where
     return $ HSub e1 e2
 
 htyabs :: Parser HExp
-htyabs = parser <?> "type abstraction" where
+htyabs = parser <?> "Haskell type abstraction" where
   parser = do
     string "\\\\"
     spaces
@@ -213,7 +213,7 @@ htyabs = parser <?> "type abstraction" where
     return $ HTyAbs v e
 
 htyapp :: Parser HExp
-htyapp = parser <?> "type application" where
+htyapp = parser <?> "Haskell type application" where
   parser = do
     e <- hexp' True
     many1 space
@@ -225,13 +225,13 @@ htyapp = parser <?> "type application" where
     return $ HTyApp e t
 
 hvar :: Parser HExp
-hvar = parser <?> "variable" where
+hvar = parser <?> "Haskell variable" where
   parser = do
     v <- evar
     return $ HVar v
 
 hwrong :: Parser HExp
-hwrong = parser <?> "wrong" where
+hwrong = parser <?> "Haskell wrong" where
   parser = do
     string "wrong"
     many1 space
@@ -271,7 +271,7 @@ mexp' nested = try (wrap mfunapp)
       return t
 
 madd :: Parser MExp
-madd = parser <?> "addition" where
+madd = parser <?> "ML addition" where
   parser = do
     char '+'
     spaces
@@ -281,15 +281,15 @@ madd = parser <?> "addition" where
     return $ MAdd e1 e2
 
 mfix :: Parser MExp
-mfix = parser <?> "fixed-point operation" where
+mfix = parser <?> "ML fixed-point operation" where
   parser = do
-    string "mfix"
+    string "fix"
     many1 space
     e <- mexp' True
     return $ MFix e
 
 mfunabs :: Parser MExp
-mfunabs = parser <?> "function abstraction" where
+mfunabs = parser <?> "ML function abstraction" where
   parser = do
     char '\\'
     spaces
@@ -305,7 +305,7 @@ mfunabs = parser <?> "function abstraction" where
     return $ MFunAbs x t e
 
 mfunapp :: Parser MExp
-mfunapp = parser <?> "function application" where
+mfunapp = parser <?> "ML function application" where
   parser = do
     e1 <- mexp' True
     many1 space
@@ -313,9 +313,9 @@ mfunapp = parser <?> "function application" where
     return $ MFunApp e1 e2
 
 mif0 :: Parser MExp
-mif0 = parser <?> "condition" where
+mif0 = parser <?> "ML condition" where
   parser = do
-    string "mif0"
+    string "if0"
     many1 space
     c <- mexp' True
     many1 space
@@ -325,7 +325,7 @@ mif0 = parser <?> "condition" where
     return $ MIf0 c t f
 
 mh :: Parser MExp
-mh = parser <?> "MH guard" where
+mh = parser <?> "ML Haskell guard" where
   parser = do
     string "MH"
     many1 space
@@ -335,13 +335,13 @@ mh = parser <?> "MH guard" where
     return $ MH t e
 
 mnum :: Parser MExp
-mnum = parser <?> "natural number" where
+mnum = parser <?> "ML natural number" where
   parser = do
     n <- many1 digit
     return $ MNum (read n)
 
 ms :: Parser MExp
-ms = parser <?> "MS guard" where
+ms = parser <?> "ML Scheme guard" where
   parser = do
     string "MS"
     many1 space
@@ -351,7 +351,7 @@ ms = parser <?> "MS guard" where
     return $ MS t e
 
 msub :: Parser MExp
-msub = parser <?> "subtraction" where
+msub = parser <?> "ML subtraction" where
   parser = do
     char '-'
     spaces
@@ -361,7 +361,7 @@ msub = parser <?> "subtraction" where
     return $ MSub e1 e2
 
 mtyabs :: Parser MExp
-mtyabs = parser <?> "type abstraction" where
+mtyabs = parser <?> "ML type abstraction" where
   parser = do
     string "\\\\"
     spaces
@@ -372,7 +372,7 @@ mtyabs = parser <?> "type abstraction" where
     return $ MTyAbs v e
 
 mtyapp :: Parser MExp
-mtyapp = parser <?> "type application" where
+mtyapp = parser <?> "ML type application" where
   parser = do
     e <- mexp' True
     many1 space
@@ -384,13 +384,13 @@ mtyapp = parser <?> "type application" where
     return $ MTyApp e t
 
 mvar :: Parser MExp
-mvar = parser <?> "variable" where
+mvar = parser <?> "ML variable" where
   parser = do
     v <- evar
     return $ MVar v
 
 mwrong :: Parser MExp
-mwrong = parser <?> "wrong" where
+mwrong = parser <?> "ML wrong" where
   parser = do
     string "wrong"
     many1 space
@@ -427,7 +427,7 @@ sexp' nested = wrap sadd
       return t
 
 sadd :: Parser SExp
-sadd = parser <?> "addition" where
+sadd = parser <?> "Scheme addition" where
   parser = do
     char '+'
     spaces
@@ -437,7 +437,7 @@ sadd = parser <?> "addition" where
     return $ SAdd e1 e2
 
 sfunabs :: Parser SExp
-sfunabs = parser <?> "function abstraction" where
+sfunabs = parser <?> "Scheme function abstraction" where
   parser = do
     char '\\'
     spaces
@@ -449,7 +449,7 @@ sfunabs = parser <?> "function abstraction" where
     return $ SFunAbs x e
 
 sfunapp :: Parser SExp
-sfunapp = parser <?> "function application" where
+sfunapp = parser <?> "Scheme function application" where
   parser = do
     e1 <- sexp' True
     many1 space
@@ -457,7 +457,7 @@ sfunapp = parser <?> "function application" where
     return $ SFunApp e1 e2
 
 sh :: Parser SExp
-sh = parser <?> "SH guard" where
+sh = parser <?> "Scheme Haskell guard" where
   parser = do
     string "SH"
     many1 space
@@ -467,7 +467,7 @@ sh = parser <?> "SH guard" where
     return $ SH t e
 
 sif0 :: Parser SExp
-sif0 = parser <?> "condition" where
+sif0 = parser <?> "Scheme condition" where
   parser = do
     string "if0"
     many1 space
@@ -479,7 +479,7 @@ sif0 = parser <?> "condition" where
     return $ SIf0 c t f
 
 sm :: Parser SExp
-sm = parser <?> "SM guard" where
+sm = parser <?> "Scheme ML guard" where
   parser = do
     string "SM"
     many1 space
@@ -489,13 +489,13 @@ sm = parser <?> "SM guard" where
     return $ SM t e
 
 snum :: Parser SExp
-snum = parser <?> "natural number" where
+snum = parser <?> "Scheme natural number" where
   parser = do
     n <- many1 digit
     return $ SNum (read n)
 
 ssub :: Parser SExp
-ssub = parser <?> "subtraction" where
+ssub = parser <?> "Scheme subtraction" where
   parser = do
     char '-'
     spaces
@@ -505,13 +505,13 @@ ssub = parser <?> "subtraction" where
     return $ SSub e1 e2
 
 svar :: Parser SExp
-svar = parser <?> "variable" where
+svar = parser <?> "Scheme variable" where
   parser = do
     v <- evar
     return $ SVar v
 
 swrong :: Parser SExp
-swrong = parser <?> "wrong" where
+swrong = parser <?> "Scheme wrong" where
   parser = do
     string "wrong"
     many1 space
