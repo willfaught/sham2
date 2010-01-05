@@ -11,3 +11,7 @@ evalH :: String -> Maybe HExp
 evalH s = case parseH s of
   Left x -> Nothing
   Right x -> if isJust $ checkH empty x then Just $ reduceFullH x else Nothing
+
+
+parseH :: String -> Either ParseError HExp
+parseH = parse mexp ""
