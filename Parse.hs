@@ -1,6 +1,5 @@
-module Parse.Haskell (stype, hexp) where
+module Parse (stype, hexp, mexp, sexp) where
 
-import Prelude hiding (exp)
 import Syntax
 import Text.ParserCombinators.Parsec hiding (label)
 
@@ -24,7 +23,7 @@ stype :: Parser SType
 stype = stype' False
 
 stype' :: Bool -> Parser SType
-stype' nested = try (wrap forall) <|> try (wrap label) <|> try (wrap fun) <|> lump <|> nat <|> tyvar where
+stype' nested = try (wrap forall) <|> try (wrap fun) <|> try (wrap label) <|> lump <|> nat <|> tyvar where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -46,16 +45,6 @@ forall = parser <?> "forall type" where
     b <- stype' True
     return $ Forall v b
 
-label :: Parser SType
-label = parser <?> "label type" where
-  parser = do
-    t <- stype' True
-    spaces
-    char '^'
-    spaces
-    n <- many1 digit
-    return $ Label t (read n)
-
 fun :: Parser SType
 fun = parser <?> "function type" where
   parser = do
@@ -65,6 +54,16 @@ fun = parser <?> "function type" where
     spaces
     r <- stype' True
     return $ Fun p r
+
+label :: Parser SType
+label = parser <?> "label type" where
+  parser = do
+    t <- stype' True
+    spaces
+    char '^'
+    spaces
+    n <- many1 digit
+    return $ Label t (read n)
 
 lump :: Parser SType
 lump = parser <?> "lump type" where
@@ -90,18 +89,19 @@ hexp :: Parser HExp
 hexp = hexp' False
 
 hexp' :: Bool -> Parser HExp
-hexp' nested = try (wrap hadd)
+hexp' nested = try (wrap hfunapp)
+  <|> try (wrap htyapp)
+  <|> try (wrap hadd)
   <|> try (wrap hfix)
   <|> try (wrap hfunabs)
-  <|> try (wrap hfunapp)
   <|> try (wrap hif0)
   <|> try (wrap hm)
+  <|> try hnum
+  <|> try (wrap hs)
   <|> try (wrap hsub)
   <|> try (wrap htyabs)
-  <|> try (wrap htyapp)
-  <|> wrap hwrong
-  <|> hnum
-  <|> hvar where
+  <|> try hvar
+  <|> try (wrap hwrong) where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -175,6 +175,22 @@ hm = parser <?> "HM guard" where
     e <- mexp
     return $ HM t e
 
+hnum :: Parser HExp
+hnum = parser <?> "natural number" where
+  parser = do
+    n <- many1 digit
+    return $ HNum (read n)
+
+hs :: Parser HExp
+hs = parser <?> "HS guard" where
+  parser = do
+    string "HS"
+    many1 space
+    t <- stype
+    many1 space
+    e <- sexp
+    return $ HS t e
+
 hsub :: Parser HExp
 hsub = parser <?> "subtraction" where
   parser = do
@@ -208,6 +224,12 @@ htyapp = parser <?> "type application" where
     char '}'
     return $ HTyApp e t
 
+hvar :: Parser HExp
+hvar = parser <?> "variable" where
+  parser = do
+    v <- evar
+    return $ HVar v
+
 hwrong :: Parser HExp
 hwrong = parser <?> "wrong" where
   parser = do
@@ -220,36 +242,25 @@ hwrong = parser <?> "wrong" where
     char '\"'
     return $ HWrong t s
 
-hnum :: Parser HExp
-hnum = parser <?> "number" where
-  parser = do
-    n <- many1 digit
-    return $ HNum (read n)
-
-hvar :: Parser HExp
-hvar = parser <?> "variable" where
-  parser = do
-    v <- evar
-    return $ HVar v
-
 -- ML
 
 mexp :: Parser MExp
 mexp = mexp' False
 
 mexp' :: Bool -> Parser MExp
-mexp' nested = try (wrap madd)
+mexp' nested = try (wrap mfunapp)
+  <|> try (wrap mtyapp)
+  <|> try (wrap madd)
   <|> try (wrap mfix)
   <|> try (wrap mfunabs)
-  <|> try (wrap mfunapp)
-  <|> try (wrap mif0)
   <|> try (wrap mh)
+  <|> try (wrap mif0)
+  <|> try mnum
+  <|> try (wrap ms)
   <|> try (wrap msub)
   <|> try (wrap mtyabs)
-  <|> try (wrap mtyapp)
-  <|> wrap mwrong
-  <|> mnum
-  <|> mvar where
+  <|> try mvar
+  <|> try (wrap mwrong) where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -323,6 +334,22 @@ mh = parser <?> "MH guard" where
     e <- hexp
     return $ MH t e
 
+mnum :: Parser MExp
+mnum = parser <?> "natural number" where
+  parser = do
+    n <- many1 digit
+    return $ MNum (read n)
+
+ms :: Parser MExp
+ms = parser <?> "MS guard" where
+  parser = do
+    string "MS"
+    many1 space
+    t <- stype
+    many1 space
+    e <- sexp
+    return $ MS t e
+
 msub :: Parser MExp
 msub = parser <?> "subtraction" where
   parser = do
@@ -356,6 +383,12 @@ mtyapp = parser <?> "type application" where
     char '}'
     return $ MTyApp e t
 
+mvar :: Parser MExp
+mvar = parser <?> "variable" where
+  parser = do
+    v <- evar
+    return $ MVar v
+
 mwrong :: Parser MExp
 mwrong = parser <?> "wrong" where
   parser = do
@@ -368,14 +401,121 @@ mwrong = parser <?> "wrong" where
     char '\"'
     return $ MWrong t s
 
-mnum :: Parser MExp
-mnum = parser <?> "number" where
+-- Scheme
+
+sexp :: Parser SExp
+sexp = sexp' False
+
+sexp' :: Bool -> Parser SExp
+sexp' nested = wrap sadd
+  <|> wrap sfunabs
+  <|> try (wrap sfunapp)
+  <|> wrap sh
+  <|> wrap sif0
+  <|> wrap sm
+  <|> snum
+  <|> wrap ssub
+  <|> svar
+  <|> wrap swrong where
+  wrap parser = if nested then wrapped else parser where
+    wrapped = do
+      char '('
+      spaces
+      t <- parser
+      spaces
+      char ')'
+      return t
+
+sadd :: Parser SExp
+sadd = parser <?> "addition" where
+  parser = do
+    char '+'
+    spaces
+    e1 <- sexp' True
+    many1 space
+    e2 <- sexp' True
+    return $ SAdd e1 e2
+
+sfunabs :: Parser SExp
+sfunabs = parser <?> "function abstraction" where
+  parser = do
+    char '\\'
+    spaces
+    x <- evar
+    spaces
+    char '.'
+    spaces
+    e <- sexp' True
+    return $ SFunAbs x e
+
+sfunapp :: Parser SExp
+sfunapp = parser <?> "function application" where
+  parser = do
+    e1 <- sexp' True
+    many1 space
+    e2 <- sexp' True
+    return $ SFunApp e1 e2
+
+sh :: Parser SExp
+sh = parser <?> "SH guard" where
+  parser = do
+    string "SH"
+    many1 space
+    t <- stype
+    many1 space
+    e <- hexp
+    return $ SH t e
+
+sif0 :: Parser SExp
+sif0 = parser <?> "condition" where
+  parser = do
+    string "if0"
+    many1 space
+    c <- sexp' True
+    many1 space
+    t <- sexp' True
+    many1 space
+    f <- sexp' True
+    return $ SIf0 c t f
+
+sm :: Parser SExp
+sm = parser <?> "SM guard" where
+  parser = do
+    string "SM"
+    many1 space
+    t <- stype
+    many1 space
+    e <- mexp
+    return $ SM t e
+
+snum :: Parser SExp
+snum = parser <?> "natural number" where
   parser = do
     n <- many1 digit
-    return $ MNum (read n)
+    return $ SNum (read n)
 
-mvar :: Parser MExp
-mvar = parser <?> "variable" where
+ssub :: Parser SExp
+ssub = parser <?> "subtraction" where
+  parser = do
+    char '-'
+    spaces
+    e1 <- sexp' True
+    many1 space
+    e2 <- sexp' True
+    return $ SSub e1 e2
+
+svar :: Parser SExp
+svar = parser <?> "variable" where
   parser = do
     v <- evar
-    return $ MVar v
+    return $ SVar v
+
+swrong :: Parser SExp
+swrong = parser <?> "wrong" where
+  parser = do
+    string "wrong"
+    many1 space
+    char '\"'
+    s <- many1 $ noneOf ['\"']
+    char '\"'
+    return $ SWrong s

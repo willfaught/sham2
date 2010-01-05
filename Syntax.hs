@@ -85,8 +85,7 @@ data Field e =
 
 -- Expressions
 
-data HExp =
-  HAdd HExp HExp
+data HExp = HAdd HExp HExp
   | HFix HExp
   | HFunAbs EVar SType HExp
   | HFunApp HExp HExp
@@ -101,8 +100,7 @@ data HExp =
   | HWrong SType String
   deriving Eq
 
-data MExp =
-  MAdd MExp MExp
+data MExp = MAdd MExp MExp
   | MFix MExp
   | MFunAbs EVar SType MExp
   | MFunApp MExp MExp
@@ -117,8 +115,7 @@ data MExp =
   | MWrong SType String
   deriving Eq
 
-data SExp =
-  SAdd SExp SExp
+data SExp = SAdd SExp SExp
   | SFunAbs EVar SExp
   | SFunApp SExp SExp
   | SH SType HExp
