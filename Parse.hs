@@ -1,7 +1,19 @@
-module Parse (stype, hexp, mexp, sexp) where
+module Parse (Parse.parse, stype, hexp, mexp, sexp) where
 
 import Syntax
-import Text.ParserCombinators.Parsec hiding (label)
+import Text.ParserCombinators.Parsec as P hiding (label)
+
+class Parse t where
+  parse :: String -> Either ParseError t
+
+instance Parse HExp where
+  parse = P.parse hexp ""
+
+instance Parse MExp where
+  parse = P.parse mexp ""
+
+instance Parse SExp where
+  parse = P.parse sexp ""
 
 evar :: Parser EVar
 evar = do
