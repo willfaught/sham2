@@ -208,7 +208,8 @@ reduceForceM exp = case exp of
 -- Scheme
 
 reduceS :: SExp -> StateT Int Reduction SExp
-reduceS exp = case exp of
+reduceS = undefined
+{-reduceS exp = case exp of
   SAdd (SNum x) (SNum y) -> return . SNum $ x + y
   SAdd x y | not $ forcedValue x -> do
     x' <- reduceForceS x
@@ -216,7 +217,7 @@ reduceS exp = case exp of
   SAdd x y | not $ forcedValue y -> do
     y' <- reduceForceS y
     return $ SAdd x y'
-  SAdd _ _ -> return $ HWrong "Not a number"
+  SAdd _ _ -> return $ SWrong "Not a number"
   SFunApp (SFunAbs v e) e' | unforcedValue e' -> return $ substExp e' v e
   SFunApp x y | not $ forcedValue x -> do
     x' <- reduceForceS x
@@ -224,18 +225,18 @@ reduceS exp = case exp of
   SFunApp x y | not $ unforcedValue y -> do
     y' <- reduceForceS y
     return $ SFunApp x y'
-  SFunApp _ _ -> return $ HWrong "Not a function"
+  SFunApp _ _ -> return $ SWrong "Not a function"
   SIf0 (SNum n) t f -> return $ if n == 0 then t else f
   SIf0 x t f | not $ forcedValue x -> do
     x' <- reduceForceS x
     return $ SIf0 x' t f
-  SIf0 _ _ _ -> return $ HWrong "Not a number"
+  SIf0 _ _ _ -> return $ SWrong "Not a number"
   --SH t (HS t' e) | t == t' -> return e
   SH Lump (HS Lump e) | unforcedValue e -> return e
   SH Nat (HNum n) -> return $ SNum n
-  SH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ SFunAbs v p (SH r (HFunApp f (HS p (SVar v))))
-  SH (Forall v t) (HTyAbs v' e) | v == v'-> return $ STyAbs v (SH t e)
-  SH f @ (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforcedValue e -> return $ SS f e
+  SH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ SFunAbs v (SH r (HFunApp f (HS p (SVar v))))
+  --SH (Forall v t) (HTyAbs v' e) | v == v' -> return $ STyAbs v (SH t e)
+  --SH f @ (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforcedValue e -> return $ SS f e
   SM t (SM t' e) | t == t' -> return e
   SM Nat (SNum n) -> return $ SNum n
   SM Nat e | unforcedValue e -> return $ SWrong Nat "Not a number"
@@ -252,7 +253,7 @@ reduceS exp = case exp of
   SSub x y | not $ forcedValue y -> do
     y' <- reduceForceS y
     return $ SSub x y'
-  SSub _ _ -> return $ HWrong "Not a number"
+  SSub _ _ -> return $ SWrong "Not a number"
   SWrong _ s -> fail s
   _ -> irreducible
 
@@ -261,4 +262,5 @@ reduceForceS exp = case exp of
   SH t e | unforcedValue e -> do
     e' <- reduceH e
     return $ SH t e'
-  _ -> reduceS exp
+  _  -> reduceS exp
+-}
