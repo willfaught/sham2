@@ -172,7 +172,7 @@ hm = parser <?> "Haskell ML guard" where
     many1 space
     t <- stype
     many1 space
-    e <- mexp
+    e <- mexp' True
     return $ HM t e
 
 hnum :: Parser HExp
@@ -188,7 +188,7 @@ hs = parser <?> "Haskell Scheme guard" where
     many1 space
     t <- stype
     many1 space
-    e <- sexp
+    e <- sexp' True
     return $ HS t e
 
 hsub :: Parser HExp
@@ -331,7 +331,7 @@ mh = parser <?> "ML Haskell guard" where
     many1 space
     t <- stype
     many1 space
-    e <- hexp
+    e <- hexp' True
     return $ MH t e
 
 mnum :: Parser MExp
@@ -347,7 +347,7 @@ ms = parser <?> "ML Scheme guard" where
     many1 space
     t <- stype
     many1 space
-    e <- sexp
+    e <- sexp' True
     return $ MS t e
 
 msub :: Parser MExp
@@ -463,7 +463,7 @@ sh = parser <?> "Scheme Haskell guard" where
     many1 space
     t <- stype
     many1 space
-    e <- hexp
+    e <- hexp' True
     return $ SH t e
 
 sif0 :: Parser SExp
@@ -485,7 +485,7 @@ sm = parser <?> "Scheme ML guard" where
     many1 space
     t <- stype
     many1 space
-    e <- mexp
+    e <- mexp' True
     return $ SM t e
 
 snum :: Parser SExp
