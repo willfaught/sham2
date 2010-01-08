@@ -51,7 +51,19 @@ TODO.  See the Parse module.
 
 TODO.  See the Parse module.
 
-2 TYPE CHECKING
+2 PARSING
+
+Use Parse.parse, or Parse.hexp, Parse.mexp, Parse.sexp, and Parse.stype directly with the Parsec modules.
+
+For example, to parse a Haskell expression:
+
+  parse "1" :: Either ParseError HExp --> Right (HNum 1)
+
+  or
+
+  Text.Parsec.Prim.parseTest hexp "1" --> Right (HNum 1)
+
+3 TYPE CHECKING
 
 Use Check.checkH, Check.checkM, and Check.checkS.
 
@@ -63,7 +75,7 @@ where "empty" is Context.empty and "exp" is the closed Haskell expression. Open 
 
 The result is a Maybe for the expression's type, where Nothing represents an ill-typed expression.
 
-3 REDUCTION
+4 REDUCTION
 
 Use Reduce.reduce or Reduce.reduceFull. Reduce.reduce reduces an expression one step, if it's reducible. Reduce.reduceFull reduces an expression zero or more times until it is irreducible.
 
@@ -83,6 +95,6 @@ To fully reduce a reducible Haskell expression:
 
 The result is an Either, like the Either for Reduce.reduce.
 
-4 NOTES
+5 NOTES
 
 HExp, MExp, SExp, and SType are instances of Show, and thus display like their parsable syntax forms. For example, the expresssion HAdd (HNum 1) (HNum 2) will display as + 1 2.
