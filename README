@@ -1,5 +1,9 @@
 SCHEME, HASKELL, AND ML
 
+0 NEWS
+
+All code is untested.
+
 1 SYNTAX
 
 1.1 HASKELL AND ML TYPES
@@ -9,9 +13,9 @@ Types are defined as:
   * "N" (natural number) is a type.
   * "L" (lump) is a type.
   * "X" (variable) is a type, where X is a metavariable that ranges over all type variables.  The first character must be a lowercase letter.  It may be followed by zero or more lowercase letters and digits.  These may be followed by zero or more primes.  For example: "x", "xx", "x1", "x'", "x2'", and "foo2bar''".
-  * "M ^ N" (label) is a type if M is a type and N is a natural number.
-  * "M -> N" (function) is a type if M and N are types.
-  * "A X . M" (forall) is a type if M is a type.
+  * "P ^ Q" (label) is a type if P is a type and Q is a natural number.
+  * "P -> Q" (function) is a type if P and Q are types.
+  * "A X . P" (forall) is a type if P is a type.
 
 Examples:
 
@@ -37,20 +41,48 @@ For example:
   * (foo) [incorrect]
   * (N -> N) [incorrect]
 
-1.2 HASKELL
+Static types are parsed into SType constructors. See the Syntax module.
 
-...
+1.2 HASKELL AND ML
+
+TODO.  See the Parse module.
+
+1.3 SCHEME
+
+TODO.  See the Parse module.
 
 2 TYPE CHECKING
 
-Use the checkH, checkM, and checkS functions in the Check module.
+Use Check.checkH, Check.checkM, and Check.checkS.
 
 For example, to type check a closed Haskell expression:
 
-  checkH empty exp
+  checkH empty (HNum 1) --> Just Nat
 
 where "empty" is Context.empty and "exp" is the closed Haskell expression. Open Haskell expressions can be type checked by supplying the corresponding context. See the Context module.
 
+The result is a Maybe for the expression's type, where Nothing represents an ill-typed expression.
+
 3 REDUCTION
 
+Use Reduce.reduce or Reduce.reduceFull. Reduce.reduce reduces an expression one step, if it's reducible. Reduce.reduceFull reduces an expression zero or more times until it is irreducible.
 
+For example, to reduce a reducible Haskell expression:
+
+  reduce (HAdd (HNum 1) (HNum 2)) --> Just (Right (HNum 3))
+
+The result is a Maybe.  Nothing represents an irreducble expression.  Just represents a reducible expression, which contains an Either.  Left represents a reduction error.  Right contains the reduction.
+
+To reduce an irreducible Haskell expression:
+
+  reduce (HNum 1) --> Nothing
+
+To fully reduce a reducible Haskell expression:
+
+  reduceFull (HAdd (HSub (HNum 2) (HNum 1)) (HSub (HNum 4) (HNum 3))) --> Right 2
+
+The result is an Either, like the Either for Reduce.reduce.
+
+4 NOTES
+
+HExp, MExp, SExp, and SType are instances of Show, and thus display like their parsable syntax forms. For example, the expresssion HAdd (HNum 1) (HNum 2) will display as + 1 2.
