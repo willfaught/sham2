@@ -1,4 +1,4 @@
-module Parse (Parse.parse, stype, hexp, mexp, sexp) where
+module Parse (Parse.parse, parseT, parseH, parseM, parseS, stype, hexp, mexp, sexp) where
 
 import Syntax
 import Text.ParserCombinators.Parsec as P hiding (label)
@@ -6,14 +6,29 @@ import Text.ParserCombinators.Parsec as P hiding (label)
 class Parse t where
   parse :: String -> Either ParseError t
 
+instance Parse SType where
+  parse = parseT
+
 instance Parse HExp where
-  parse = P.parse hexp ""
+  parse = parseH
 
 instance Parse MExp where
-  parse = P.parse mexp ""
+  parse = parseM
 
 instance Parse SExp where
-  parse = P.parse sexp ""
+  parse = parseS
+
+parseT :: String -> Either ParseError SType
+parseT = P.parse stype ""
+
+parseH :: String -> Either ParseError HExp
+parseH = P.parse hexp ""
+
+parseM :: String -> Either ParseError MExp
+parseM = P.parse mexp ""
+
+parseS :: String -> Either ParseError SExp
+parseS = P.parse sexp ""
 
 evar :: Parser EVar
 evar = do
@@ -35,7 +50,12 @@ stype :: Parser SType
 stype = stype' False
 
 stype' :: Bool -> Parser SType
-stype' nested = try (wrap forall) <|> try (wrap fun) <|> try (wrap label) <|> lump <|> nat <|> tyvar where
+stype' nested = try (wrap forall)
+  <|> try (wrap fun)
+  <|> try (wrap label)
+  <|> try lump
+  <|> try nat
+  <|> try tyvar where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('

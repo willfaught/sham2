@@ -1,21 +1,23 @@
-module Check (checkH, checkM, checkS) where
+module Check (checkT, checkH, checkM, checkS) where
 
 import Context
-import Subst
+import Substitute
 import Syntax
-
-closed :: Context -> SType -> Bool
-closed c t = case t of
-    Lump -> True
-    Nat -> True
-    TyVar x -> sbound x c
-    Label x _ -> closed c x
-    Fun x y -> closed c x && closed c y
-    Forall x y -> closed (stbind x c) y
 
 assert :: Bool -> Maybe Bool
 assert True = Just True
 assert False = Nothing
+
+-- Type
+
+checkT :: Context -> SType -> Bool
+checkT c t = case t of
+    Lump -> True
+    Nat -> True
+    TyVar x -> sbound x c
+    Label x _ -> checkT c x
+    Fun x y -> checkT c x && checkT c y
+    Forall x y -> checkT (stbind x c) y
 
 -- Haskell
 
@@ -32,7 +34,7 @@ checkH cxt exp = case exp of
       Fun p b -> Just p
       _ -> Nothing
   HFunAbs v p e -> do
-    assert (closed cxt p)
+    assert (checkT cxt p)
     b <- checkH (sebind v p cxt) e
     return (Fun p b)
   HFunApp x y -> do
@@ -50,13 +52,13 @@ checkH cxt exp = case exp of
     assert (gt == Nat && tt == ft)
     return tt
   HM t e -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     u <- checkM cxt e
     assert (t == u)
     return t
   HNum _ -> Just Nat
   HS t e -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     checkS cxt e
     return t
   HSub x y -> do
@@ -69,12 +71,12 @@ checkH cxt exp = case exp of
     t <- checkH (stbind v cxt) e
     return (Forall v t)
   HTyApp e t -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     Forall v u <- checkH cxt e
     return $ substTy t v u
   HVar v -> sbinding v cxt
   HWrong t s -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     return t
 
 -- ML
@@ -92,7 +94,7 @@ checkM cxt exp = case exp of
       Fun p b -> Just p
       _ -> Nothing
   MFunAbs v p e -> do
-    assert (closed cxt p)
+    assert (checkT cxt p)
     b <- checkM (sebind v p cxt) e
     return (Fun p b)
   MFunApp x y -> do
@@ -104,7 +106,7 @@ checkM cxt exp = case exp of
         return b
       _ -> Nothing
   MH t e -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     u <- checkH cxt e
     assert (t == u)
     return t
@@ -116,7 +118,7 @@ checkM cxt exp = case exp of
     return tt
   MNum _ -> Just Nat
   MS t e -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     checkS cxt e
     return t
   MSub x y -> do
@@ -129,12 +131,12 @@ checkM cxt exp = case exp of
     t <- checkM (stbind v cxt) e
     return (Forall v t)
   MTyApp e t -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     Forall v u <- checkM cxt e
     return $ substTy t v u
   MVar v -> sbinding v cxt
   MWrong t s -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     return t
 
 -- Scheme
@@ -153,7 +155,7 @@ checkS cxt exp = case exp of
     checkS cxt y
     return DType
   SH t e -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     e' <- checkH cxt e
     assert (t == e')
     return DType
@@ -163,7 +165,7 @@ checkS cxt exp = case exp of
     checkS cxt f
     return DType
   SM t e -> do
-    assert (closed cxt t)
+    assert (checkT cxt t)
     e' <- checkM cxt e
     assert (t == e')
     return DType
