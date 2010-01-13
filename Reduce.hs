@@ -2,7 +2,7 @@ module Reduce (reduce, reduceFull) where
 
 import Control.Monad.State
 import Data.Either
-import Subst
+import Substitute
 import Syntax
 
 unlabel :: SType -> SType

@@ -1,4 +1,4 @@
-module Subst (substTy, substTyExp, substExp) where
+module Substitute (substTy, substTyExp, substExp) where
 
 import Syntax
 
