@@ -1,4 +1,4 @@
-module Reduce (reduce, reducible, unforced, forced) where
+module Reduce (reduce, reduceFully, reducible, unforced, forced) where
 
 import Control.Monad.State
 import Data.Either
@@ -28,6 +28,12 @@ unlabel t = case t of
   Fun p r -> Fun (unlabel p) (unlabel r)
   Forall v b -> Forall v (unlabel b)
   _ -> t
+
+reduceFully :: Reduce t => t -> Reduction t
+reduceFully e = if reducible e then case reduce e of
+    Left s -> Left s
+    Right e' -> reduceFully e'
+  else Right e
 
 -- Haskell
 
