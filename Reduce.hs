@@ -99,7 +99,7 @@ reduceH exp = case exp of
     x' <- reduceH x
     return $ HTyApp x' t
   HWrong _ s -> fail s
-  _ -> error $ "Irreducible or invalid expression: " ++ show exp
+  _ -> error $ "Irreducible, ill-typed, or invalid expression: " ++ show exp
 
 -- ML
 
@@ -147,6 +147,7 @@ reduceM exp = case exp of
   MH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ MFunAbs v p (MH r (HFunApp f (HM p (MVar v))))
   MH (Forall v t) (HTyAbs v' e) | v == v'-> return $ MTyAbs v (MH t e)
   MH f @ (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforced e -> return $ MS f e
+  MS t (SH t' e) | t == t' && unforced e -> return $ MH t e
   MS Nat (SNum n) -> return $ MNum n
   MS Nat e | unforced e -> return $ MWrong Nat "Not a number"
   MS t @ (Label _ _) (SM t' @ (Label _ _) e) | t == t' && unforced e -> return e
@@ -172,7 +173,7 @@ reduceM exp = case exp of
     x' <- reduceForceM x
     return $ MTyApp x' t
   MWrong _ s -> fail s
-  _ -> error $ "Irreducible or invalid expression: " ++ show exp
+  _ -> error $ "Irreducible, ill-typed, or invalid expression: " ++ show exp
 
 reduceForceM :: MExp -> StateT Int ReductionState MExp
 reduceForceM exp = case exp of
@@ -197,8 +198,7 @@ instance Reduce SExp where
     _ -> False
 
 reduceS :: SExp -> StateT Int ReductionState SExp
-reduceS = undefined
-{-reduceS exp = case exp of
+reduceS exp = case exp of
   SAdd (SNum x) (SNum y) -> return . SNum $ x + y
   SAdd x y | not $ forced x -> do
     x' <- reduceForceS x
@@ -212,7 +212,7 @@ reduceS = undefined
     x' <- reduceForceS x
     return $ SFunApp x' y
   SFunApp x y | not $ unforced y -> do
-    y' <- reduceForceS y
+    y' <- reduceS y
     return $ SFunApp x y'
   SFunApp _ _ -> return $ SWrong "Not a function"
   SIf0 (SNum n) t f -> return $ if n == 0 then t else f
@@ -220,20 +220,19 @@ reduceS = undefined
     x' <- reduceForceS x
     return $ SIf0 x' t f
   SIf0 _ _ _ -> return $ SWrong "Not a number"
-  --SH t (HS t' e) | t == t' -> return e
   SH Lump (HS Lump e) | unforced e -> return e
   SH Nat (HNum n) -> return $ SNum n
-  SH (Fun p r) f @ (HFunAbs v t b) | p == t -> return $ SFunAbs v (SH r (HFunApp f (HS p (SVar v))))
-  --SH (Forall v t) (HTyAbs v' e) | v == v' -> return $ STyAbs v (SH t e)
-  --SH f @ (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforced e -> return $ SS f e
-  SM t (SM t' e) | t == t' -> return e
-  SM Nat (SNum n) -> return $ SNum n
-  SM Nat e | unforced e -> return $ SWrong Nat "Not a number"
-  SM (Label t _) e | unforced e -> return $ SWrong t "Parametricity violated"
-  SM (Fun p r) f @ (SFunAbs v b) -> return $ SFunAbs v (unlabel p) (SM r (SFunApp f (SM p (SVar v))))
-  SM t @ (Fun _ _) e | unforced e -> return $ SWrong (unlabel t) "Not a function"
+  SH (Fun p r) f @ (HFunAbs v t b) | unlabel p == t -> return $ SFunAbs v (SH r (HFunApp f (HS p (SVar v))))
+  SH (Forall v t) a @ (HTyAbs v' _) | v == v' -> return $ SH (substTy Lump v t) (HTyApp a Lump)
+  SH (Forall v t) (HS (Forall v' t') e) | v == v' && t == t' && unforced e -> return e
+  SM t (MH t' e) | t == t' -> return $ SH t e
+  SM Lump (MS Lump e) | unforced e -> return e
+  SM Nat (MNum n) -> return $ SNum n
+  SM (Fun p r) f @ (MFunAbs v t b) | unlabel p == t -> return $ SFunAbs v (SM r (MFunApp f (MS p (SVar v))))
+  SM (Forall v t) a @ (MTyAbs v' _) | v == v' -> return $ SM (substTy Lump v t) (MTyApp a Lump)
+  SM (Forall v t) (MS (Forall v' t') e) | v == v' && t == t' -> return e
   SM t e | not $ unforced e -> do
-    e' <- reduceS e
+    e' <- reduceM e
     return $ SM t e'
   SSub (SNum x) (SNum y) -> return . SNum $ max 0 $ x - y
   SSub x y | not $ forced x -> do
@@ -243,8 +242,8 @@ reduceS = undefined
     y' <- reduceForceS y
     return $ SSub x y'
   SSub _ _ -> return $ SWrong "Not a number"
-  SWrong _ s -> fail s
-  _ -> irreducible
+  SWrong s -> fail s
+  _ -> error $ "Irreducible, ill-typed, or invalid expression: " ++ show exp
 
 reduceForceS :: SExp -> StateT Int ReductionState SExp
 reduceForceS exp = case exp of
@@ -252,4 +251,3 @@ reduceForceS exp = case exp of
     e' <- reduceH e
     return $ SH t e'
   _  -> reduceS exp
--}
