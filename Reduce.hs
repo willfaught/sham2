@@ -1,4 +1,4 @@
-module Reduce (reduce, reduceFully, reducible, unforced, forced) where
+module Reduce (Reduce(..), Reduction, reduceFully) where
 
 import Control.Monad.State
 import Data.Either
