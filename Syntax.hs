@@ -1,16 +1,15 @@
 module Syntax where
 
-import Data.List (find)
-import Data.Maybe (fromJust, isJust)
-import Prelude hiding (mapM)
-
--- Types
+class ExpMap a where
+  emap :: (a -> a) -> a -> a
 
 type EVar = String
 
-type TVar = String
+-- Types
 
 data DType = DType deriving (Eq, Show)
+
+type TVar = String
 
 data SType = Forall TVar SType
   | Fun SType SType
@@ -33,57 +32,7 @@ showT top e = case e of
   TyVar v -> v
   where wrap s = if top then s else "(" ++ s ++ ")"
 
-{-
-type Name = String
-
-data TyField =
-  TyField {
-    tyfieldName :: Maybe Name,
-    tyfieldType :: SType }
-
-data TyCon =
-  TyCon {
-    tyconName :: Name,
-    tyconFields :: [TyField] }
-
-data TyDef =
-  TyDef {
-    tydefName :: Name,
-    tydefVars :: [TVar],
-    tydefCons :: [TyCon] }
-
-type TyDefs = [TyDef]
-
-tydef :: Name -> TyDefs -> Maybe TyDef
-tydef n = find $ (== n) . tydefName
-
-tycon :: Name -> TyDefs -> Maybe TyCon
-tycon n = fromJust . find isJust . map ((find $ (== n) . tyconName) . tydefCons)
-
-tyfield :: Name -> TyDefs -> Maybe TyField
-tyfield n1 = fromJust . find isJust . concat . map def where
-  def = map con . tydefCons 
-  con = find match . tyconFields
-  match (TyField (Just n2) _) = n1 == n2
-  match (TyField Nothing _) = False
-
-condef :: Name -> TyDefs -> Maybe TyDef
-condef n = find $ any ((==) n . tyconName) . tydefCons
-
-fieldcon :: Name -> TyDefs -> Maybe TyCon
-fieldcon n1 = fromJust . find isJust . map def where
-  def = find con . tydefCons
-  con = any field . tyconFields
-  field (TyField (Just n2) _) = n1 == n2
-  field (TyField Nothing _) = False
-
-data Field e =
-  FieldExp e
-  | FieldType SType
-  deriving (Eq, Show)
--}
-
--- Expressions
+-- Haskell
 
 data HExp = HAdd HExp HExp
   | HFix HExp
@@ -99,35 +48,6 @@ data HExp = HAdd HExp HExp
   | HVar EVar
   | HWrong SType String
   deriving Eq
-
-data MExp = MAdd MExp MExp
-  | MFix MExp
-  | MFunAbs EVar SType MExp
-  | MFunApp MExp MExp
-  | MH SType HExp
-  | MIf0 MExp MExp MExp
-  | MNum Integer
-  | MS SType SExp
-  | MSub MExp MExp
-  | MTyAbs TVar MExp
-  | MTyApp MExp SType
-  | MVar EVar
-  | MWrong SType String
-  deriving Eq
-
-data SExp = SAdd SExp SExp
-  | SFunAbs EVar SExp
-  | SFunApp SExp SExp
-  | SH SType HExp
-  | SIf0 SExp SExp SExp
-  | SM SType MExp
-  | SNum Integer
-  | SSub SExp SExp
-  | SVar EVar
-  | SWrong String
-  deriving Eq
-
--- Show
 
 instance Show HExp where
   show = showH True
@@ -149,6 +69,49 @@ showH top e = case e of
   HWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
 
+instance ExpMap HExp where
+  emap f e = case e of
+    HAdd m n -> HAdd (go m) (go n)
+    HFix x -> HFix $ go x
+    HFunAbs v t b -> HFunAbs v t (go b)
+    HFunApp f a -> HFunApp (go f) (go a)
+    HIf0 c t f -> HIf0 (go c) (go t) (go f)
+    HSub m n -> HSub (go m) (go n)
+    HTyAbs v b -> HTyAbs v $ go b
+    HTyApp e t -> HTyApp (go e) t
+    _ -> e
+    where go = emap f
+
+-- ML
+
+data MExp = MAdd MExp MExp
+  | MFix MExp
+  | MFunAbs EVar SType MExp
+  | MFunApp MExp MExp
+  | MH SType HExp
+  | MIf0 MExp MExp MExp
+  | MNum Integer
+  | MS SType SExp
+  | MSub MExp MExp
+  | MTyAbs TVar MExp
+  | MTyApp MExp SType
+  | MVar EVar
+  | MWrong SType String
+  deriving Eq
+
+instance ExpMap MExp where
+  emap f e = case e of
+    MAdd m n -> MAdd (go m) (go n)
+    MFix x -> MFix $ go x
+    MFunAbs v t b -> MFunAbs v t (go b)
+    MFunApp f a -> MFunApp (go f) (go a)
+    MIf0 c t f -> MIf0 (go c) (go t) (go f)
+    MSub m n -> MSub (go m) (go n)
+    MTyAbs v b -> MTyAbs v $ go b
+    MTyApp e t -> MTyApp (go e) t
+    _ -> e
+    where go = emap f
+
 instance Show MExp where
   show = showM True
   
@@ -169,6 +132,22 @@ showM top e = case e of
   MWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
 
+-- Scheme
+
+data SExp = SAdd SExp SExp
+  | SFunAbs EVar SExp
+  | SFunApp SExp SExp
+  | SFunPred SExp
+  | SH SType HExp
+  | SIf0 SExp SExp SExp
+  | SM SType MExp
+  | SNum Integer
+  | SNumPred SExp
+  | SSub SExp SExp
+  | SVar EVar
+  | SWrong String
+  deriving Eq
+
 instance Show SExp where
   show = showS True
 
@@ -177,52 +156,25 @@ showS top e = case e of
   SAdd x y -> wrap $ "+ " ++ showS False x ++ " " ++ showS False y
   SFunAbs v b -> wrap $ "\\" ++ v ++ "." ++ showS False b
   SFunApp x y -> wrap $ showS False x ++ " " ++ showS False y
+  SFunPred x -> wrap $ "fun? " ++ showS False x
   SH t e -> wrap $ "SH " ++ showT False t ++ " " ++ showH False e
   SIf0 x y z -> wrap $ "if0 " ++ showS False x ++ " " ++ showS False y ++ " " ++ showS False z
   SM t e -> wrap $ "SM " ++ showT False t ++ " " ++ showM False e
   SNum n -> show n
+  SNumPred x -> wrap $ "num? " ++ showS False x
   SSub x y -> wrap $ "- " ++ showS False x ++ " " ++ showS False y
   SVar v -> v
   SWrong s -> wrap $ "wrong " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
-
--- ExpMap
-
-class ExpMap a where
-  emap :: (a -> a) -> a -> a
-
-instance ExpMap HExp where
-  emap f e = case e of
-    HAdd m n -> HAdd (go m) (go n)
-    HFix x -> HFix $ go x
-    HFunAbs v t b -> HFunAbs v t (go b)
-    HFunApp f a -> HFunApp (go f) (go a)
-    HIf0 c t f -> HIf0 (go c) (go t) (go f)
-    HSub m n -> HSub (go m) (go n)
-    HTyAbs v b -> HTyAbs v $ go b
-    HTyApp e t -> HTyApp (go e) t
-    _ -> e
-    where go = emap f
-
-instance ExpMap MExp where
-  emap f e = case e of
-    MAdd m n -> MAdd (go m) (go n)
-    MFix x -> MFix $ go x
-    MFunAbs v t b -> MFunAbs v t (go b)
-    MFunApp f a -> MFunApp (go f) (go a)
-    MIf0 c t f -> MIf0 (go c) (go t) (go f)
-    MSub m n -> MSub (go m) (go n)
-    MTyAbs v b -> MTyAbs v $ go b
-    MTyApp e t -> MTyApp (go e) t
-    _ -> e
-    where go = emap f
 
 instance ExpMap SExp where
   emap f e = case e of
     SAdd m n -> SAdd (go m) (go n)
     SFunAbs v b -> SFunAbs v (go b)
     SFunApp f a -> SFunApp (go f) (go a)
+    SFunPred x -> SFunPred (go x)
     SIf0 c t f -> SIf0 (go c) (go t) (go f)
+    SNumPred x -> SFunPred (go x)
     SSub m n -> SSub (go m) (go n)
     _ -> e
     where go = emap f
