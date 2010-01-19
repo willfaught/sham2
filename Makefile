@@ -1,5 +1,8 @@
-main: Check.hs Context.hs Main.hs Parse.hs Reduce.hs Substitute.hs Syntax.hs
-	ghc --make Check.hs Context.hs Main.hs Parse.hs Reduce.hs Substitute.hs Syntax.hs -o sham
+files = Check.hs Context.hs Main.hs Parse.hs Reduce.hs Substitute.hs Syntax.hs
+cflags = -optc-m32 -opta-m32 -optl-m32
+
+main: $(files)
+	ghc --make -o sham $(cflags) $(files)
 
 clean:
-	rm *.hi
+	rm -f sham *.hi *.o
