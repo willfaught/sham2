@@ -71,16 +71,15 @@ showH top e = case e of
 
 instance ExpMap HExp where
   emap f e = case e of
-    HAdd m n -> HAdd (go m) (go n)
-    HFix x -> HFix $ go x
-    HFunAbs v t b -> HFunAbs v t (go b)
-    HFunApp f a -> HFunApp (go f) (go a)
-    HIf0 c t f -> HIf0 (go c) (go t) (go f)
-    HSub m n -> HSub (go m) (go n)
-    HTyAbs v b -> HTyAbs v $ go b
-    HTyApp e t -> HTyApp (go e) t
+    HAdd x y -> HAdd (f x) (f y)
+    HFix x -> HFix $ f x
+    HFunAbs v t x -> HFunAbs v t (f x)
+    HFunApp x y -> HFunApp (f x) (f y)
+    HIf0 x y z -> HIf0 (f x) (f y) (f z)
+    HSub x y -> HSub (f x) (f y)
+    HTyAbs v x -> HTyAbs v $ f x
+    HTyApp x t -> HTyApp (f x) t
     _ -> e
-    where go = emap f
 
 -- ML
 
@@ -101,14 +100,14 @@ data MExp = MAdd MExp MExp
 
 instance ExpMap MExp where
   emap f e = case e of
-    MAdd m n -> MAdd (go m) (go n)
-    MFix x -> MFix $ go x
-    MFunAbs v t b -> MFunAbs v t (go b)
-    MFunApp f a -> MFunApp (go f) (go a)
-    MIf0 c t f -> MIf0 (go c) (go t) (go f)
-    MSub m n -> MSub (go m) (go n)
-    MTyAbs v b -> MTyAbs v $ go b
-    MTyApp e t -> MTyApp (go e) t
+    MAdd x y -> MAdd (f x) (f y)
+    MFix x -> MFix $ f x
+    MFunAbs v t x -> MFunAbs v t (f x)
+    MFunApp x y -> MFunApp (f x) (f y)
+    MIf0 x y z -> MIf0 (f x) (f y) (f z)
+    MSub x y -> MSub (f x) (f y)
+    MTyAbs v x -> MTyAbs v $ f x
+    MTyApp x t -> MTyApp (f x) t
     _ -> e
     where go = emap f
 
@@ -169,12 +168,11 @@ showS top e = case e of
 
 instance ExpMap SExp where
   emap f e = case e of
-    SAdd m n -> SAdd (go m) (go n)
-    SFunAbs v b -> SFunAbs v (go b)
-    SFunApp f a -> SFunApp (go f) (go a)
-    SFunPred x -> SFunPred (go x)
-    SIf0 c t f -> SIf0 (go c) (go t) (go f)
-    SNumPred x -> SFunPred (go x)
-    SSub m n -> SSub (go m) (go n)
+    SAdd x y -> SAdd (f x) (f y)
+    SFunAbs v x -> SFunAbs v (f x)
+    SFunApp x y -> SFunApp (f x) (f y)
+    SFunPred x -> SFunPred (f x)
+    SIf0 x y z -> SIf0 (f x) (f y) (f z)
+    SNumPred x -> SFunPred (f x)
+    SSub x y -> SSub (f x) (f y)
     _ -> e
-    where go = emap f
