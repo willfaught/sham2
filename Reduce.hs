@@ -1,26 +1,24 @@
-module Reduce (Reduce(..), Reduction, reduceFully) where
+module Reduce (Reduce(..), reduceFully) where
 
 import Control.Monad.State
 import Data.Either
 import Substitute
 import Syntax
 
-type Reduction t = Either String t
-
 class Reduce t where
-  reduce :: t -> Reduction t
+  reduce :: t -> Either String t
   reducible :: t -> Bool
   unforced :: t -> Bool
   forced :: t -> Bool
 
-newtype ReductionState t = ReductionState (Either String t)
+newtype Reduction t = Reduction (Either String t)
 
-instance Monad ReductionState where
-  ReductionState x >>= f = case x of
-    Left s -> ReductionState . Left $ s
+instance Monad Reduction where
+  Reduction x >>= f = case x of
+    Left s -> Reduction . Left $ s
     Right e -> f e
-  return = ReductionState . Right
-  fail = ReductionState . Left
+  return = Reduction . Right
+  fail = Reduction . Left
 
 unlabel :: SType -> SType
 unlabel t = case t of
@@ -29,7 +27,7 @@ unlabel t = case t of
   Forall v b -> Forall v (unlabel b)
   _ -> t
 
-reduceFully :: Reduce t => t -> Reduction t
+reduceFully :: Reduce t => t -> Either String t
 reduceFully e = if reducible e then case reduce e of
     Left s -> Left s
     Right e' -> reduceFully e'
@@ -38,7 +36,7 @@ reduceFully e = if reducible e then case reduce e of
 -- Haskell
 
 instance Reduce HExp where
-  reduce e = let ReductionState r = evalStateT (reduceH e) 1 in r
+  reduce e = let Reduction r = evalStateT (reduceH e) 1 in r
   reducible (HVar _) = False
   reducible e = not . unforced $ e
   unforced exp = case exp of
@@ -50,7 +48,7 @@ instance Reduce HExp where
     _ -> False
   forced = undefined
 
-reduceH :: HExp -> StateT Int ReductionState HExp
+reduceH :: HExp -> StateT Int Reduction HExp
 reduceH exp = case exp of
   HAdd (HNum x) (HNum y) -> return . HNum $ x + y
   HAdd x y | not $ unforced x -> do
@@ -110,7 +108,7 @@ reduceH exp = case exp of
 -- ML
 
 instance Reduce MExp where
-  reduce e = let ReductionState r = evalStateT (reduceM e) 1 in r
+  reduce e = let Reduction r = evalStateT (reduceM e) 1 in r
   reducible (MVar _) = False
   reducible e = (not . unforced $ e) && (not . forced $ e)
   unforced exp = case exp of
@@ -124,7 +122,7 @@ instance Reduce MExp where
     MS (Forall _ _) e | unforced e -> True
     _ -> False
 
-reduceM :: MExp -> StateT Int ReductionState MExp
+reduceM :: MExp -> StateT Int Reduction MExp
 reduceM exp = case exp of
   MAdd (MNum x) (MNum y) -> return . MNum $ x + y
   MAdd x y | not $ forced x -> do
@@ -181,7 +179,7 @@ reduceM exp = case exp of
   MWrong _ s -> fail s
   _ -> error $ "Irreducible, ill-typed, or invalid expression: " ++ show exp
 
-reduceForceM :: MExp -> StateT Int ReductionState MExp
+reduceForceM :: MExp -> StateT Int Reduction MExp
 reduceForceM exp = case exp of
   MH t e | unforced e -> do
     e' <- reduceH e
@@ -191,7 +189,7 @@ reduceForceM exp = case exp of
 -- Scheme
 
 instance Reduce SExp where
-  reduce e = let ReductionState r = evalStateT (reduceS e) 1 in r
+  reduce e = let Reduction r = evalStateT (reduceS e) 1 in r
   reducible (SVar _) = False
   reducible e = (not . unforced $ e) && (not . forced $ e)
   unforced exp = case exp of
@@ -203,7 +201,7 @@ instance Reduce SExp where
     SM (Label _ _) e | unforced e -> True
     _ -> False
 
-reduceS :: SExp -> StateT Int ReductionState SExp
+reduceS :: SExp -> StateT Int Reduction SExp
 reduceS exp = case exp of
   SAdd (SNum x) (SNum y) -> return . SNum $ x + y
   SAdd x y | not $ forced x -> do
@@ -263,7 +261,7 @@ reduceS exp = case exp of
   SWrong s -> fail s
   _ -> error $ "Irreducible, ill-typed, or invalid expression: " ++ show exp
 
-reduceForceS :: SExp -> StateT Int ReductionState SExp
+reduceForceS :: SExp -> StateT Int Reduction SExp
 reduceForceS exp = case exp of
   SH t e | unforced e -> do
     e' <- reduceH e

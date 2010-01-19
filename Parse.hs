@@ -1,22 +1,7 @@
-module Parse (Parse.parse, parseT, parseH, parseM, parseS, stype, hexp, mexp, sexp) where
+module Parse (parseT, parseH, parseM, parseS, stype, hexp, mexp, sexp) where
 
 import Syntax
 import Text.ParserCombinators.Parsec as P hiding (label)
-
-class Parse t where
-  parse :: String -> Either ParseError t
-
-instance Parse SType where
-  parse = parseT
-
-instance Parse HExp where
-  parse = parseH
-
-instance Parse MExp where
-  parse = parseM
-
-instance Parse SExp where
-  parse = parseS
 
 parseT :: String -> Either ParseError SType
 parseT = P.parse stype ""
