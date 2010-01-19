@@ -221,6 +221,12 @@ reduceS exp = case exp of
     y' <- reduceS y
     return $ SFunApp x y'
   SFunApp _ _ -> return $ SWrong "Not a function"
+  SFunPred x | forced x -> case x of
+    SFunAbs _ _ -> return $ SNum 0
+    _ -> return $ SNum 1
+  SFunPred x -> do
+    x' <- reduceForceS x
+    return $ SFunPred x'
   SIf0 (SNum n) t f -> return $ if n == 0 then t else f
   SIf0 x t f | not $ forced x -> do
     x' <- reduceForceS x
@@ -240,6 +246,12 @@ reduceS exp = case exp of
   SM t e | not $ unforced e -> do
     e' <- reduceM e
     return $ SM t e'
+  SNumPred x | forced x -> case x of
+    SNum _ -> return $ SNum 0
+    _ -> return $ SNum 1
+  SNumPred x -> do
+    x' <- reduceForceS x
+    return $ SNumPred x'
   SSub (SNum x) (SNum y) -> return . SNum $ max 0 $ x - y
   SSub x y | not $ forced x -> do
     x' <- reduceForceS x

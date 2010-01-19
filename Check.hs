@@ -154,6 +154,9 @@ checkS cxt exp = case exp of
     checkS cxt x
     checkS cxt y
     return DType
+  SFunPred x -> do
+    checkS cxt x
+    return DType
   SH t e -> do
     assert (checkT cxt t)
     e' <- checkH cxt e
@@ -170,6 +173,9 @@ checkS cxt exp = case exp of
     assert (t == e')
     return DType
   SNum _ -> return DType
+  SNumPred x -> do
+    checkS cxt x
+    return DType
   SSub x y -> do
     checkS cxt x
     checkS cxt y

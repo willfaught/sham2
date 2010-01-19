@@ -439,16 +439,18 @@ sexp :: Parser SExp
 sexp = sexp' False
 
 sexp' :: Bool -> Parser SExp
-sexp' nested = wrap sadd
-  <|> wrap sfunabs
+sexp' nested = try (wrap sadd)
+  <|> try (wrap sfunabs)
   <|> try (wrap sfunapp)
-  <|> wrap sh
-  <|> wrap sif0
-  <|> wrap sm
-  <|> snum
-  <|> wrap ssub
-  <|> svar
-  <|> wrap swrong where
+  <|> try (wrap sfunpred)
+  <|> try (wrap sh)
+  <|> try (wrap sif0)
+  <|> try (wrap sm)
+  <|> try snum
+  <|> try (wrap snumpred)
+  <|> try (wrap ssub)
+  <|> try svar
+  <|> try (wrap swrong) where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -488,6 +490,14 @@ sfunapp = parser <?> "Scheme function application" where
     e2 <- sexp' True
     return $ SFunApp e1 e2
 
+sfunpred :: Parser SExp
+sfunpred = parser <?> "Scheme function predicate" where
+  parser = do
+    string "fun?"
+    many1 space
+    e <- sexp
+    return $ SFunPred e
+
 sh :: Parser SExp
 sh = parser <?> "Scheme Haskell guard" where
   parser = do
@@ -525,6 +535,14 @@ snum = parser <?> "Scheme natural number" where
   parser = do
     n <- many1 digit
     return $ SNum (read n)
+
+snumpred :: Parser SExp
+snumpred = parser <?> "Scheme natural number predicate" where
+  parser = do
+    string "num?"
+    many1 space
+    e <- sexp
+    return $ SFunPred e
 
 ssub :: Parser SExp
 ssub = parser <?> "Scheme subtraction" where
