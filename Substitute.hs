@@ -2,7 +2,11 @@ module Substitute (substTy, substTyExp, substExp) where
 
 import Syntax
 
--- Types in types
+class Substitute a where
+  substExp :: a -> EVar -> a -> a
+  substTyExp :: SType -> TVar -> a -> a
+
+-- Types
 
 substTy :: SType -> TVar -> SType -> SType
 substTy new old t = case t of
@@ -12,12 +16,17 @@ substTy new old t = case t of
   _ -> t
   where subst = substTy new old
 
--- Types in expressions
+-- Haskell
 
-class SubstTyExp a where
-  substTyExp :: SType -> TVar -> a -> a
-
-instance SubstTyExp HExp where
+instance Substitute HExp where
+  substExp new old exp = case exp of
+    HVar v | v == old -> new
+    HFunAbs v _ _ | v == old -> exp
+    HFunAbs v t b -> HFunAbs v t (subst b)
+    HM t e -> HM t $ substExpHM new old e
+    HS t e -> HS t $ substExpHS new old e
+    _ -> emap subst exp
+    where subst = substExp new old
   substTyExp new old exp = case exp of
     HFunAbs v t b -> HFunAbs v (substT t) (substE b)
     HM t e -> HM (substT t) (substTyExpHM new old e)
@@ -27,52 +36,6 @@ instance SubstTyExp HExp where
     _ -> emap (substTyExp new old) exp
     where substE = substTyExp new old
           substT = substTy new old
-
-substTyExpHM :: SType -> TVar -> MExp -> MExp
-substTyExpHM new old exp = case exp of
-  MH t e -> MH t $ substTyExp new old e
-  _ -> emap (substTyExpHM new old) exp
-
-substTyExpHS :: SType -> TVar -> SExp -> SExp
-substTyExpHS new old exp = case exp of
-  SH t e -> SH t $ substTyExp new old e
-  _ -> emap (substTyExpHS new old) exp
-
-instance SubstTyExp MExp where
-  substTyExp new old exp = case exp of
-    MFunAbs v t b -> MFunAbs v (substT t) (substE b)
-    MH t e -> MH (substT t) (substTyExpMH new old e)
-    MS t e -> MS (substT t) (substTyExpMS new old e)
-    MTyAbs v e | v == old -> exp | otherwise -> MTyAbs v (substE e)
-    MTyApp e t -> MTyApp e (substT t)
-    _ -> emap (substTyExp new old) exp
-    where substE = substTyExp new old
-          substT = substTy new old
-
-substTyExpMH :: SType -> TVar -> HExp -> HExp
-substTyExpMH new old exp = case exp of
-  HM t e -> HM t $ substTyExp new old e
-  _ -> emap (substTyExpMH new old) exp
-
-substTyExpMS :: SType -> TVar -> SExp -> SExp
-substTyExpMS new old exp = case exp of
-  SM t e -> SM t $ substTyExp new old e
-  _ -> emap (substTyExpMS new old) exp
-
--- Expressions in expressions
-
-class SubstExp a where
-  substExp :: a -> EVar -> a -> a
-
-instance SubstExp HExp where
-  substExp new old exp = case exp of
-    HVar v | v == old -> new
-    HFunAbs v _ _ | v == old -> exp
-    HFunAbs v t b -> HFunAbs v t (subst b)
-    HM t e -> HM t $ substExpHM new old e
-    HS t e -> HS t $ substExpHS new old e
-    _ -> emap subst exp
-    where subst = substExp new old
 
 substExpHM :: HExp -> EVar -> MExp -> MExp
 substExpHM new old exp = case exp of
@@ -84,7 +47,19 @@ substExpHS new old exp = case exp of
   SH t e -> SH t $ substExp new old e
   _ -> emap (substExpHS new old) exp
 
-instance SubstExp MExp where
+substTyExpHM :: SType -> TVar -> MExp -> MExp
+substTyExpHM new old exp = case exp of
+  MH t e -> MH t $ substTyExp new old e
+  _ -> emap (substTyExpHM new old) exp
+
+substTyExpHS :: SType -> TVar -> SExp -> SExp
+substTyExpHS new old exp = case exp of
+  SH t e -> SH t $ substTyExp new old e
+  _ -> emap (substTyExpHS new old) exp
+
+-- ML
+
+instance Substitute MExp where
   substExp new old exp = case exp of
     MVar v | v == old -> new
     MFunAbs v _ _ | v == old -> exp
@@ -93,6 +68,15 @@ instance SubstExp MExp where
     MS t e -> MS t $ substExpMS new old e
     _ -> emap subst exp
     where subst = substExp new old
+  substTyExp new old exp = case exp of
+    MFunAbs v t b -> MFunAbs v (substT t) (substE b)
+    MH t e -> MH (substT t) (substTyExpMH new old e)
+    MS t e -> MS (substT t) (substTyExpMS new old e)
+    MTyAbs v e | v == old -> exp | otherwise -> MTyAbs v (substE e)
+    MTyApp e t -> MTyApp e (substT t)
+    _ -> emap (substTyExp new old) exp
+    where substE = substTyExp new old
+          substT = substTy new old
 
 substExpMH :: MExp -> EVar -> HExp -> HExp
 substExpMH new old exp = case exp of
@@ -104,7 +88,19 @@ substExpMS new old exp = case exp of
   SM t e -> SM t $ substExp new old e
   _ -> emap (substExpMS new old) exp
 
-instance SubstExp SExp where
+substTyExpMH :: SType -> TVar -> HExp -> HExp
+substTyExpMH new old exp = case exp of
+  HM t e -> HM t $ substTyExp new old e
+  _ -> emap (substTyExpMH new old) exp
+
+substTyExpMS :: SType -> TVar -> SExp -> SExp
+substTyExpMS new old exp = case exp of
+  SM t e -> SM t $ substTyExp new old e
+  _ -> emap (substTyExpMS new old) exp
+
+-- Scheme
+
+instance Substitute SExp where
   substExp new old exp = case exp of
     SVar v | v == old -> new
     SFunAbs v _ | v == old -> exp
@@ -113,6 +109,7 @@ instance SubstExp SExp where
     SM t e -> SM t $ substExpSM new old e
     _ -> emap subst exp
     where subst = substExp new old
+  substTyExp = undefined
 
 substExpSH :: SExp -> EVar -> HExp -> HExp
 substExpSH new old exp = case exp of
