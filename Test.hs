@@ -48,8 +48,13 @@ parseTypes = "types" ~: test [
   "va7" ~: Right (TyVar "x''") ~=? parseT "x''",
   "va8" ~: Right (TyVar "xy'") ~=? parseT "xy'",
   "va9" ~: Right (TyVar "xy'") ~=? parseT "xy'",
-  "va10" ~: let p = case parseT "N" of Left _ -> True ; Right _ -> False in p ~? ""
+  "va10" ~: badType "x'y"
   ]
+
+badType s = r ~? "" where
+  r = case parseT s of
+    Left _ -> True
+    Right _ -> False
 
 parseHaskell = undefined
 

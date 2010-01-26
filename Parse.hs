@@ -4,16 +4,16 @@ import Syntax
 import Text.ParserCombinators.Parsec as P hiding (label)
 
 parseT :: String -> Either ParseError SType
-parseT = P.parse stype ""
+parseT = P.parse p "" where p = do t <- stype ; eof ; return t
 
 parseH :: String -> Either ParseError HExp
-parseH = P.parse hexp ""
+parseH = P.parse p "" where p = do e <- hexp ; eof ; return e
 
 parseM :: String -> Either ParseError MExp
-parseM = P.parse mexp ""
+parseM = P.parse p "" where p = do e <- mexp ; eof ; return e
 
 parseS :: String -> Either ParseError SExp
-parseS = P.parse sexp ""
+parseS = P.parse p "" where p = do e <- sexp ; eof ; return e
 
 evar :: Parser EVar
 evar = do
