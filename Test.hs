@@ -6,7 +6,7 @@ import Parse
 import Reduce
 import Substitute
 import Syntax
-import Test.HUnit
+import Test.HUnit hiding (Label)
 import qualified Text.ParserCombinators.Parsec as P
 import qualified Text.ParserCombinators.Parsec.Error as E
 
@@ -33,28 +33,43 @@ instance Eq P.ParseError where
 instance Eq E.Message where
   (==) = E.messageEq
 
-parse :: Test
-parse = "parse" ~: test [parseTypes{-, parseHaskell, parseML, parseScheme-}]
-
-parseTypes = "types" ~: test [
-  "lu1" ~: Right Lump ~=? parseT "L",
-  "na1" ~: Right Nat ~=? parseT "N",
-  "va1" ~: Right (TyVar "x") ~=? parseT "x",
-  "va2" ~: Right (TyVar "xy") ~=? parseT "xy",
-  "va3" ~: Right (TyVar "x2") ~=? parseT "x2",
-  "va4" ~: Right (TyVar "xy2") ~=? parseT "xy2",
-  "va5" ~: Right (TyVar "xy2z") ~=? parseT "xy2z",
-  "va6" ~: Right (TyVar "x'") ~=? parseT "x'",
-  "va7" ~: Right (TyVar "x''") ~=? parseT "x''",
-  "va8" ~: Right (TyVar "xy'") ~=? parseT "xy'",
-  "va9" ~: Right (TyVar "xy'") ~=? parseT "xy'",
-  "va10" ~: badType "x'y"
-  ]
-
-badType s = r ~? "" where
+badType :: String -> String -> Test
+badType n s = n ~: r ~? "" where
   r = case parseT s of
     Left _ -> True
     Right _ -> False
+
+goodType :: String -> SType -> String -> Test
+goodType n e s = n ~: Right e ~=? parseT s
+
+parse :: Test
+parse = "parse" ~: test [parseTypes{-, parseHaskell, parseML, parseScheme-}]
+
+parseTypes = "types" ~: test [parseLump, parseNat, parseTyVar]
+
+parseLump = goodType "lump" Lump "L"
+
+parseNat = goodType "nat" Nat "N"
+
+parseTyVar = "tyvar" ~: test [goodType "letter" (TyVar "x") "x",
+  goodType "letters" (TyVar "xy") "xy",
+  goodType "letter, digit" (TyVar "x2") "x2",
+  goodType "letters, digit" (TyVar "xy2") "xy2",
+  goodType "letter, digit, letter" (TyVar "x2y") "x2y",
+  goodType "letter, prime" (TyVar "x'") "x'",
+  goodType "letter, primes" (TyVar "x''") "x''",
+  goodType "letters, prime" (TyVar "xy'") "xy'",
+  goodType "letters, primes" (TyVar "xy''") "xy''",
+  badType "digit" "1",
+  badType "digit, letter" "1x",
+  badType "prime, letter" "'x",
+  badType "letter, prime, letter" "x'y"]
+
+parseLabel = "label" ~: test [goodType "zero, zero spaces" (Label Nat 0) "N^0",
+  goodType "zero, space before" (Label Nat 0) "N ^0",
+  goodType "zero, space after" (Label Nat 0) "N^ 0",
+  goodType "zero, two spaces" (Label Nat 0) "N ^ 0"
+           ]
 
 parseHaskell = undefined
 
