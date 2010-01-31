@@ -1,31 +1,10 @@
-module Test (runTests) where
+module Test.Parse (parseTests) where
 
-import Check
-import Context
 import Parse
-import Reduce
-import Substitute
 import Syntax
 import Test.HUnit hiding (Label)
 import qualified Text.ParserCombinators.Parsec as P
 import qualified Text.ParserCombinators.Parsec.Error as E
-
-runTests :: IO Counts
-runTests = runTestTT tests
-
-tests :: Test
-tests = test [{-check, context,i-} parse{-, reduce, substitute, syntax-}]
-
--- Check
-
-check :: Test
-check = undefined
-
--- Context
-
-
-
--- Parse
 
 instance Eq P.ParseError where
   x == y = E.errorPos x == E.errorPos y && E.errorMessages x == E.errorMessages y
@@ -33,15 +12,15 @@ instance Eq P.ParseError where
 instance Eq E.Message where
   (==) = E.messageEq
 
-parse :: Test
-parse = "parse" ~: test [
+parseTests :: Test
+parseTests = "parse" ~: test [
     parseTypes{-,
     parseHaskell,
     parseML,
     parseScheme-}
   ]
 
--- Parse Types
+-- Types
 
 badType :: String -> String -> Test
 badType n s = n ~: r ~? "" where
@@ -112,26 +91,41 @@ parseTyVar = "tyvar" ~: test [
     badType "letter, prime, letter" "x'y"
   ]
 
--- Parse Haskell
+-- Haskell
 
-parseHaskell = undefined
+badHExp :: String -> String -> Test
+badHExp n s = n ~: r ~? "" where
+  r = case parseH s of
+    Left _ -> True
+    Right _ -> False
 
--- Parse ML
+goodHExp :: String -> HExp -> String -> Test
+goodHExp n e s = n ~: Right e ~=? parseH s
+
+parseHaskell = "haskell" ~: test [
+    parseHAdd{-,
+    parseHFix,
+    parseHFunAbs,
+    parseHFunApp,
+    parseHIf0,
+    parseHM,
+    parseHNum,
+    parseHS,
+    parseHSub,
+    parseHTyAbs,
+    parseHTyApp,
+    parseHVar,
+    parseHWrong-}
+  ]
+
+parseHAdd = "hadd" ~: test [
+    goodHExp "1, 1" (HAdd (HNum 1) (HNum 1)) "+ 1 1"
+  ]
+
+-- ML
 
 parseML = undefined
 
--- Parse Scheme
+-- Scheme
 
 parseScheme = undefined
-
--- Reduce
-
-
-
--- Substitute
-
-
-
---Syntax
-
-
