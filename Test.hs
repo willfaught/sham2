@@ -80,8 +80,7 @@ parseFun = "fun" ~: test [
     goodType "both nested" (Fun (Fun Nat Nat) (Fun Nat Nat)) "(N -> N) -> (N -> N)",
     badType "bad arrow" "N --> N",
     badType "two arrows" "N ->-> N",
-    badType "truncated right" "N ->",
-    badType "truncated arrow" "N"
+    badType "truncated right" "N ->"
   ]
 
 parseLabel = "label" ~: test [
@@ -90,19 +89,12 @@ parseLabel = "label" ~: test [
     badType "bad caret" "N * 0",
     badType "two carets" "N ^^ 0",
     badType "bad num" "N ^ N",
-    badType "truncated num" "N ^",
-    badType "truncated caret" "N"
+    badType "truncated num" "N ^"
   ]
 
-parseLump = "lump" ~: test [
-    goodType "lump" Lump "L",
-    badType "not lump" "N"
-  ]
+parseLump = "lump" ~: goodType "lump" Lump "L"
 
-parseNat = "nat" ~: test [
-    goodType "nat" Nat "N",
-    badType "not nat" "L"
-  ]
+parseNat = "nat" ~: goodType "nat" Nat "N"
 
 parseTyVar = "tyvar" ~: test [
     goodType "letter" (TyVar "x") "x",
