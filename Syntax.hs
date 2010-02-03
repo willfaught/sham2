@@ -5,7 +5,7 @@ class ExpMap a where
 
 type EVar = String
 
--- Types
+-- Type
 
 data DType = DType deriving (Eq, Show)
 

@@ -14,7 +14,7 @@ instance Eq E.Message where
 
 parseTests :: Test
 parseTests = "parse" ~: test [
-    parseTypes{-,
+    parseType{-,
     parseHaskell,
     parseML,
     parseScheme-}
@@ -31,7 +31,8 @@ badType n s = n ~: r ~? "" where
 goodType :: String -> SType -> String -> Test
 goodType n e s = n ~: Right e ~=? parseT s
 
-parseTypes = "types" ~: test [
+parseType :: Test
+parseType = "type" ~: test [
     parseForall,
     parseFun,
     parseLabel,
@@ -40,6 +41,7 @@ parseTypes = "types" ~: test [
     parseTyVar
   ]
 
+parseForall :: Test
 parseForall = "forall" ~: test [
     goodType "no nested" (Forall "x" Nat) "A x . N",
     goodType "one nested" (Forall "x" (Forall "y" Nat)) "A x . (A y . N)",
@@ -52,6 +54,7 @@ parseForall = "forall" ~: test [
     badType "truncated var" "A"
   ]
 
+parseFun :: Test
 parseFun = "fun" ~: test [
     goodType "no nested" (Fun Nat Nat) "N -> N",
     goodType "left nested" (Fun (Fun Nat Nat) Nat) "(N -> N) -> N",
@@ -62,6 +65,7 @@ parseFun = "fun" ~: test [
     badType "truncated right" "N ->"
   ]
 
+parseLabel :: Test
 parseLabel = "label" ~: test [
     goodType "zero nested" (Label Nat 0) "N ^ 0",
     goodType "one nested" (Label (Label Lump 0) 1) "(L ^ 0) ^ 1",
@@ -71,10 +75,13 @@ parseLabel = "label" ~: test [
     badType "truncated num" "N ^"
   ]
 
+parseLump :: Test
 parseLump = "lump" ~: goodType "lump" Lump "L"
 
+parseNat :: Test
 parseNat = "nat" ~: goodType "nat" Nat "N"
 
+parseTyVar :: Test
 parseTyVar = "tyvar" ~: test [
     goodType "letter" (TyVar "x") "x",
     goodType "letters" (TyVar "xy") "xy",
@@ -102,6 +109,7 @@ badHExp n s = n ~: r ~? "" where
 goodHExp :: String -> HExp -> String -> Test
 goodHExp n e s = n ~: Right e ~=? parseH s
 
+parseHaskell :: Test
 parseHaskell = "haskell" ~: test [
     parseHAdd{-,
     parseHFix,
@@ -118,14 +126,17 @@ parseHaskell = "haskell" ~: test [
     parseHWrong-}
   ]
 
+parseHAdd :: Test
 parseHAdd = "hadd" ~: test [
     goodHExp "1, 1" (HAdd (HNum 1) (HNum 1)) "+ 1 1"
   ]
 
 -- ML
 
+parseML :: Test
 parseML = undefined
 
 -- Scheme
 
+parseScheme :: Test
 parseScheme = undefined
