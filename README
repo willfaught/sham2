@@ -147,4 +147,4 @@ Parsing, type checking, and reduction errors are printed to standard error.  Cur
 
 3 CORRECTNESS
 
-Comprehensive tests are in the words, but incomplete.  Currently, correctness is not guaranteed.
+Comprehensive tests are in the works, but incomplete.  Currently, correctness is not guaranteed.
