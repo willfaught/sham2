@@ -25,7 +25,7 @@ stype = forall | fun | label | lump | nat | tyvar
 
 forall = 'A' var '.' stype
 
-var = letter { letter | digit } { prime }
+var = letter { letter | digit } { "'" }
 
 fun = stype '->' stype
 
