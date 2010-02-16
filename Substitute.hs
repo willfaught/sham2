@@ -6,7 +6,7 @@ class Substitute a where
   substExp :: a -> EVar -> a -> a
   substTyExp :: SType -> TVar -> a -> a
 
--- Types
+-- Type
 
 substTy :: SType -> TVar -> SType -> SType
 substTy new old t = case t of
