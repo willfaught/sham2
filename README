@@ -10,7 +10,7 @@ Pattern choice: pattern1 | pattern2.
 Zero or more repetitions of a pattern: {pattern}.
 Pattern sequence: pattern1 pattern2.
 Pattern sequences are delimited by one or more whitespaces.
-Literals are surrounding by single quotes.
+Literals are surrounding by single quotes, or double quotes where needed.
 Letter, digit, and string non-terminals assume a straightforward definition.
 
 1.2 PARENTHESES
