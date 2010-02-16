@@ -1,100 +1,150 @@
 SCHEME, HASKELL, AND ML
 
-0 NEWS
-
-All code is untested.
+By Will Faught (com dot gmail at faught dot will)
 
 1 SYNTAX
 
-1.1 HASKELL AND ML TYPES
+1.1 NOTATION
 
-Types are defined as:
+Pattern choice: pattern1 | pattern2.
+Zero or more repetitions of a pattern: {pattern}.
+Pattern sequence: pattern1 pattern2.
+Pattern sequences are delimited by one or more whitespaces.
+Literals are surrounding by single quotes.
+Letter, digit, and string non-terminals assume a straightforward definition.
 
-  * "N" (natural number) is a type.
-  * "L" (lump) is a type.
-  * "X" (variable) is a type, where X is a metavariable that ranges over all type variables.  The first character must be a lowercase letter.  It may be followed by zero or more lowercase letters and digits.  These may be followed by zero or more primes.  For example: "x", "xx", "x1", "x'", "x2'", and "foo2bar''".
-  * "P ^ Q" (label) is a type if P is a type and Q is a natural number.
-  * "P -> Q" (function) is a type if P and Q are types.
-  * "A X . P" (forall) is a type if P is a type.
+1.2 PARENTHESES
 
-Examples:
+Outermost expressions and types may not be contained in parentheses.  Natural numbers and variables are not contained in parentheses.  Natural number, lump, and variable types are not contained in parentheses.  All other expressions and types must be contained in parentheses for unambiguity.
 
-  * N
-  * L
-  * x
-  * N -> N
-  * N -> (N -> N)
-  * (N -> N) -> N
-  * (N -> N) -> (N -> N)
-  * N ^ 0
-  * (N ^ 0) ^ 1
-  * A x . N
-  * A x . (A y . z)
-  * (a1 -> a2) -> (a' ^ 11)
+1.3 HASKELL AND ML TYPES
 
-Outermost type terms may not be contained in parentheses.  Nested natural number, lump, and variable types may not be contained in parentheses.  All other types must be contained in parentheses for unambiguity.
+Haskell and ML types--static types--are defined as the stype non-terminal in the grammar below.
 
-For example:
+stype = forall | fun | label | lump | nat | tyvar
 
-  * (N) [incorrect]
-  * (L) [incorrect]
-  * (foo) [incorrect]
-  * (N -> N) [incorrect]
+forall = 'A' var '.' stype
 
-Static types are parsed into SType constructors. See the Syntax module.
+var = letter { letter | digit } { prime }
 
-1.2 HASKELL AND ML
+fun = stype '->' stype
 
-TODO.  See the Parse module.
+label = stype '^' num
 
-1.3 SCHEME
+num = digit { digit }
 
-TODO.  See the Parse module.
+lump = 'L'
 
-2 PARSING
+nat = 'N'
 
-Use Parse.parse, or Parse.hexp, Parse.mexp, Parse.sexp, and Parse.stype directly with the Parsec modules.
+tyvar = var
 
-For example, to parse a Haskell expression:
+1.4 HASKELL
 
-  parse "1" :: Either ParseError HExp --> Right (HNum 1)
+Haskell expressions are defined as the hexp non-terminal in the grammar below.  The mexp and sexp non-terminals are defined elsewhere.
 
-  or
+hexp = hadd | hfix | hfunabs | hfunapp | hif0 | hm | hnum | hs | hsub | htyabs | htyapp | hvar | hwrong
 
-  Text.Parsec.Prim.parseTest hexp "1" --> Right (HNum 1)
+hadd = '+' hexp hexp
 
-3 TYPE CHECKING
+hfix = 'fix' hexp
 
-Use Check.checkH, Check.checkM, and Check.checkS.
+hfunabs = '\' var ':' stype '.' hexp
 
-For example, to type check a closed Haskell expression:
+hfunapp = hexp hexp
 
-  checkH empty (HNum 1) --> Just Nat
+hif0 = 'if0' hexp hexp hexp
 
-where "empty" is Context.empty and "exp" is the closed Haskell expression. Open Haskell expressions can be type checked by supplying the corresponding context. See the Context module.
+hm = 'HM' stype mexp
 
-The result is a Maybe for the expression's type, where Nothing represents an ill-typed expression.
+hnum = num
 
-4 REDUCTION
+hs = 'HS' stype sexp
 
-Use Reduce.reduce or Reduce.reduceFull. Reduce.reduce reduces an expression one step, if it's reducible. Reduce.reduceFull reduces an expression zero or more times until it is irreducible.
+hsub = '-' hexp hexp
 
-For example, to reduce a reducible Haskell expression:
+htyabs = '\\' var '.' hexp
 
-  reduce (HAdd (HNum 1) (HNum 2)) --> Just (Right (HNum 3))
+htyapp = hexp '{' stype '}'
 
-The result is a Maybe.  Nothing represents an irreducble expression.  Just represents a reducible expression, which contains an Either.  Left represents a reduction error.  Right contains the reduction.
+hvar = var
 
-To reduce an irreducible Haskell expression:
+hwrong = 'wrong' stype string
 
-  reduce (HNum 1) --> Nothing
+1.5 ML
 
-To fully reduce a reducible Haskell expression:
+ML expressions are defined as the mexp non-terminal in the grammar below.  The hexp and sexp non-terminals are defined elsewhere.
 
-  reduceFull (HAdd (HSub (HNum 2) (HNum 1)) (HSub (HNum 4) (HNum 3))) --> Right 2
+mexp = madd | mfix | mfunabs | mfunapp | mh | mif0 | mnum | ms | msub | mtyabs | mtyapp | mvar | mwrong
 
-The result is an Either, like the Either for Reduce.reduce.
+madd = '+' mexp mexp
 
-5 NOTES
+mfix = 'fix' mexp
 
-HExp, MExp, SExp, and SType are instances of Show, and thus display like their parsable syntax forms. For example, the expresssion HAdd (HNum 1) (HNum 2) will display as + 1 2.
+mfunabs = '\' var ':' stype '.' mexp
+
+mfunapp = mexp mexp
+
+mh = 'MH' stype hexp
+
+mif0 = 'if0' mexp mexp mexp
+
+mnum = num
+
+ms = 'MS' stype sexp
+
+msub = '-' mexp mexp
+
+mtyabs = '\\' var '.' mexp
+
+mtyapp = mexp '{' stype '}'
+
+mvar = var
+
+mwrong = 'wrong' stype string
+
+1.6 SCHEME
+
+Scheme expressions are defined as the mexp non-terminal in the grammar below.  The hexp and mexp non-terminals are defined elsewhere.
+
+sexp = sadd | sfunabs | sfunapp | sh | sif0 | sm | snum | ssub | svar | swrong
+
+sadd = '+' sexp sexp
+
+sfunabs = '\' var '.' sexp
+
+sfunapp = sexp sexp
+
+sh = 'SH' stype hexp
+
+sif0 = 'if0' sexp sexp sexp
+
+sm = 'SM' stype mexp
+
+snum = num
+
+ssub = '-' sexp sexp
+
+svar = var
+
+swrong = 'wrong' string
+
+2 REDUCTION
+
+Execute the sham program to reduce expressions.
+
+2.1 ARGUMENTS
+
+The single argument specifies the language of the outermost expression.  Valid values are 'haskell', 'ml', and 'scheme' (case sensitive).
+
+2.2 INPUT/OUTPUT
+
+The reduction program reads from standard input and writes to standard output.  Use the echo command to create expression files in the command line, or use cat to read expressions from files.  Use command line pipes to connect standard output from echo and cat to standard input of the reduction program.
+
+2.3 ERRORS
+
+Parsing, type checking, and reduction errors are printed to standard error.  Currently, the error code is always zero.  Currently, there is no help or version command line option.
+
+3 CORRECTNESS
+
+Comprehensive tests are in the words, but incomplete.  Currently, correctness is not guaranteed.
