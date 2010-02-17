@@ -148,3 +148,7 @@ Parsing, type checking, and reduction errors are printed to standard error.  Cur
 3 CORRECTNESS
 
 Comprehensive tests are in the works, but incomplete.  Currently, correctness is not guaranteed.
+
+4 COMPILATION
+
+Install Macports 1.8.2 on Mac OS X 10.6.2.  Install GHC 6.10.4 and GNU make 3.81 using Macports.  Execute make in the project directory.  Haskell modules can be interpreted using ghci (part of the GHC port).
