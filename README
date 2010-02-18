@@ -151,4 +151,4 @@ Comprehensive tests are in the works, but incomplete.  Currently, correctness is
 
 4 COMPILATION
 
-Install Macports 1.8.2 on Mac OS X 10.6.2.  Install GHC 6.10.4 and GNU make 3.81 using Macports.  Execute make in the project directory.  Haskell modules can be interpreted using ghci (part of the GHC port).
+Install Macports 1.8.2 and the developer tools on Mac OS X 10.6.2.  Install the ports ghc 6.10.4 and hs-mtl 1.1.0.2 using Macports.  Execute make in the project directory.  Haskell modules can be interpreted using ghci (part of the ghc port).
