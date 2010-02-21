@@ -1,5 +1,6 @@
-module Parse (parseT, parseH, parseM, parseS, stype, hexp, mexp, sexp) where
+module Parse (parseT, parseH, parseM, parseS) where
 
+import Control.Monad
 import Syntax
 import Text.ParserCombinators.Parsec as P hiding (label)
 
@@ -106,19 +107,19 @@ hexp :: Parser HExp
 hexp = hexp' False
 
 hexp' :: Bool -> Parser HExp
-hexp' nested = try (wrap hfunapp)
-  <|> try (wrap htyapp)
-  <|> try (wrap hadd)
+hexp' nested = try (wrap hadd)
   <|> try (wrap hfix)
   <|> try (wrap hfunabs)
   <|> try (wrap hif0)
   <|> try (wrap hm)
-  <|> try hnum
   <|> try (wrap hs)
   <|> try (wrap hsub)
   <|> try (wrap htyabs)
-  <|> try hvar
-  <|> try (wrap hwrong) where
+  <|> try (wrap hwrong)
+  <|> try (wrap hfunapp)
+  <|> try (wrap htyapp)
+  <|> try hnum
+  <|> try hvar where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -141,7 +142,7 @@ hadd = parser <?> "Haskell addition" where
 hfix :: Parser HExp
 hfix = parser <?> "Haskell fixed-point operation" where
   parser = do
-    string "hfix"
+    string "fix"
     many1 space
     e <- hexp' True
     return $ HFix e
@@ -173,7 +174,7 @@ hfunapp = parser <?> "Haskell function application" where
 hif0 :: Parser HExp
 hif0 = parser <?> "Haskell condition" where
   parser = do
-    string "hif0"
+    string "if0"
     many1 space
     c <- hexp' True
     many1 space
@@ -226,6 +227,7 @@ htyabs = parser <?> "Haskell type abstraction" where
     v <- tvar
     spaces
     char '.'
+    spaces
     e <- hexp' True
     return $ HTyAbs v e
 
@@ -245,6 +247,7 @@ hvar :: Parser HExp
 hvar = parser <?> "Haskell variable" where
   parser = do
     v <- evar
+    when (v `elem` ["fix", "if0", "wrong"]) (fail $ "Invalid variable: " ++ v)
     return $ HVar v
 
 hwrong :: Parser HExp
@@ -265,19 +268,19 @@ mexp :: Parser MExp
 mexp = mexp' False
 
 mexp' :: Bool -> Parser MExp
-mexp' nested = try (wrap mfunapp)
-  <|> try (wrap mtyapp)
-  <|> try (wrap madd)
+mexp' nested = try (wrap madd)
   <|> try (wrap mfix)
   <|> try (wrap mfunabs)
   <|> try (wrap mh)
   <|> try (wrap mif0)
-  <|> try mnum
   <|> try (wrap ms)
   <|> try (wrap msub)
   <|> try (wrap mtyabs)
-  <|> try mvar
-  <|> try (wrap mwrong) where
+  <|> try (wrap mwrong)
+  <|> try (wrap mfunapp)
+  <|> try (wrap mtyapp)
+  <|> try mnum
+  <|> try mvar where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -404,6 +407,7 @@ mvar :: Parser MExp
 mvar = parser <?> "ML variable" where
   parser = do
     v <- evar
+    when (v `elem` ["fix", "if0", "wrong"]) (fail $ "Invalid variable: " ++ v)
     return $ MVar v
 
 mwrong :: Parser MExp
@@ -426,16 +430,16 @@ sexp = sexp' False
 sexp' :: Bool -> Parser SExp
 sexp' nested = try (wrap sadd)
   <|> try (wrap sfunabs)
-  <|> try (wrap sfunapp)
   <|> try (wrap sfunpred)
   <|> try (wrap sh)
   <|> try (wrap sif0)
   <|> try (wrap sm)
-  <|> try snum
   <|> try (wrap snumpred)
   <|> try (wrap ssub)
-  <|> try svar
-  <|> try (wrap swrong) where
+  <|> try (wrap swrong)
+  <|> try (wrap sfunapp)
+  <|> try snum
+  <|> try svar where
   wrap parser = if nested then wrapped else parser where
     wrapped = do
       char '('
@@ -543,6 +547,7 @@ svar :: Parser SExp
 svar = parser <?> "Scheme variable" where
   parser = do
     v <- evar
+    when (v `elem` ["if0", "wrong"]) (fail $ "Invalid variable: " ++ v)
     return $ SVar v
 
 swrong :: Parser SExp
