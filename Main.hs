@@ -2,7 +2,7 @@ module Main where
 
 import Check
 import Context
-import Parse
+import Parse hiding (parse)
 import Reduce hiding (reduce)
 import System.Environment
 import System.IO
@@ -30,29 +30,29 @@ language = do
 haskell :: IO ()
 haskell = do
   contents <- getContents
-  expression <- parse hexp contents
+  expression <- parse parseH contents
   check checkH expression
   reduction <- reduce expression
-  putStrLn $ show reduction where
+  putStrLn $ show reduction
 
 ml :: IO ()
 ml = do
   contents <- getContents
-  expression <- parse mexp contents
+  expression <- parse parseM contents
   check checkM expression
   reduction <- reduce expression
-  putStrLn $ show reduction where
+  putStrLn $ show reduction
 
 scheme :: IO ()
 scheme = do
   contents <- getContents
-  expression <- parse sexp contents
+  expression <- parse parseS contents
   check checkS expression
   reduction <- reduce expression
-  putStrLn $ show reduction where
+  putStrLn $ show reduction
 
-parse :: P.Parser a -> String -> IO a
-parse p s = case P.parse p "standard input" s of
+parse :: (String -> Either P.ParseError a) -> String -> IO a
+parse p s = case p s of
   Right x -> return x
   Left x -> fail $ "ill-formed expression: " ++ show x
 
