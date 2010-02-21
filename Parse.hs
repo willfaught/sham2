@@ -1,8 +1,23 @@
-module Parse (parseT, parseH, parseM, parseS) where
+module Parse (Parse.parse, parseT, parseH, parseM, parseS) where
 
 import Control.Monad
 import Syntax
 import Text.ParserCombinators.Parsec as P hiding (label)
+
+class Parse a where
+  parse :: String -> Either ParseError a
+
+instance Parse SType where
+  parse = parseT
+
+instance Parse HExp where
+  parse = parseH
+
+instance Parse MExp where
+  parse = parseM
+
+instance Parse SExp where
+  parse = parseS
 
 parseT :: String -> Either ParseError SType
 parseT = P.parse p "" where p = do t <- stype ; eof ; return t
