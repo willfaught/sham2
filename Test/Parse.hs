@@ -20,7 +20,7 @@ parseTests = "parse" ~: test [
     parseScheme-}
   ]
 
--- Types
+-- Type
 
 badType :: String -> String -> Test
 badType n s = n ~: r ~? "" where
@@ -139,9 +139,7 @@ h3 = HNum 3
 
 h4 = HNum 4
 
-hx = HVar "x"
-
-hid = HFunAbs "x" Nat hx
+hid = HFunAbs "x" Nat (HVar "x")
 
 hadd :: Test
 hadd = "hadd" ~: test [
@@ -161,14 +159,13 @@ hfix :: Test
 hfix = "hfix" ~: test [
     goodH "fun" (HFix hid) "fix (\\ x : N . x)",
     goodH "nested, fun" (HFix (HFix hid)) "fix (fix (\\ x : N . x))",
-    badH "missing operand" "fix",
-    badH "misspelled" "fit (\\x : N . x)"
+    badH "missing operand" "fix"
   ]
 
 hfunabs :: Test
 hfunabs = "hfunabs" ~: test [
     goodH "id" hid "\\ x : N . x",
-    goodH "nested" (HFunAbs "x" Nat (HFunAbs "y" (Fun Lump Nat) hx)) "\\ x : N . (\\ y : L -> N . x)",
+    goodH "nested" (HFunAbs "x" Nat (HFunAbs "y" (Fun Lump Nat) (HVar "x"))) "\\ x : N . (\\ y : L -> N . x)",
     badH "bad period" "\\ x : N , x",
     badH "bad colon" "\\ x ; N . x",
     badH "bad backslash" "/ x : N . x",
@@ -214,9 +211,7 @@ hnum :: Test
 hnum = "hnum" ~: test [
     goodH "single digit" h1 "1",
     goodH "many digits" (HNum 123) "123",
-    badH "letter" "a",
     badH "digit and letter" "1a",
-    badH "like var" "a1",
     badH "prime" "1'"
   ]
 
@@ -280,10 +275,12 @@ hvar = "hvar" ~: test [
     goodH "letter, primes" (HVar "x''") "x''",
     goodH "letters, prime" (HVar "xy'") "xy'",
     goodH "letters, primes" (HVar "xy''") "xy''",
-    badH "digit" "1",
     badH "digit, letter" "1x",
     badH "prime, letter" "'x",
-    badH "letter, prime, letter" "x'y"
+    badH "letter, prime, letter" "x'y",
+    badH "fix" "fix",
+    badH "if0" "if0",
+    badH "wrong" "wrong"
   ]
 
 hwrong :: Test
