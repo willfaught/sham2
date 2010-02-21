@@ -56,15 +56,15 @@ showH :: Bool -> HExp -> String
 showH top e = case e of
   HAdd x y -> wrap $ "+ " ++ showH False x ++ " " ++ showH False y
   HFix x -> wrap $ "fix " ++ showH False x
-  HFunAbs v t b -> wrap $ "\\" ++ v ++ ":" ++ showT False t ++ "." ++ showH False b
+  HFunAbs v t b -> wrap $ "\\ " ++ v ++ " : " ++ showT False t ++ " . " ++ showH False b
   HFunApp x y -> wrap $ showH False x ++ " " ++ showH False y
   HIf0 x y z -> wrap $ "if0 " ++ showH False x ++ " " ++ showH False y ++ " " ++ showH False z
   HM t e -> wrap $ "HM " ++ showT False t ++ " " ++ showM False e
   HNum n -> show n
   HS t e -> wrap $ "HS " ++ showT False t ++ " " ++ showS False e
   HSub x y -> wrap $ "- " ++ showH False x ++ " " ++ showH False y
-  HTyAbs v b -> wrap $ "\\\\" ++ v ++ "." ++ showH False b
-  HTyApp e t -> wrap $ "" ++ showH False e ++ " {" ++ showT False t ++ "}"
+  HTyAbs v b -> wrap $ "\\\\ " ++ v ++ " . " ++ showH False b
+  HTyApp e t -> wrap $ showH False e ++ " { " ++ showT False t ++ " }"
   HVar v -> v
   HWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
@@ -118,15 +118,15 @@ showM :: Bool -> MExp -> String
 showM top e = case e of
   MAdd x y -> wrap $ "+ " ++ showM False x ++ " " ++ showM False y
   MFix x -> wrap $ "fix " ++ showM False x
-  MFunAbs v t b -> wrap $ "\\" ++ v ++ ":" ++ showT False t ++ "." ++ showM False b
+  MFunAbs v t b -> wrap $ "\\ " ++ v ++ " : " ++ showT False t ++ " . " ++ showM False b
   MFunApp x y -> wrap $ showM False x ++ " " ++ showM False y
   MH t e -> wrap $ "MH " ++ showT False t ++ " " ++ showH False e
   MIf0 x y z -> wrap $ "if0 " ++ showM False x ++ " " ++ showM False y ++ " " ++ showM False z
   MNum n -> show n
   MS t e -> wrap $ "MS " ++ showT False t ++ " " ++ showS False e
   MSub x y -> wrap $ "- " ++ showM False x ++ " " ++ showM False y
-  MTyAbs v b -> wrap $ "\\\\" ++ v ++ "." ++ showM False b
-  MTyApp e t -> wrap $ "" ++ showM False e ++ " {" ++ showT False t ++ "}"
+  MTyAbs v b -> wrap $ "\\\\ " ++ v ++ " . " ++ showM False b
+  MTyApp e t -> wrap $ showM False e ++ " { " ++ showT False t ++ " }"
   MVar v -> v
   MWrong t s -> wrap $ "wrong " ++ showT False t ++ " " ++ show s
   where wrap s = if top then s else "(" ++ s ++ ")"
@@ -153,7 +153,7 @@ instance Show SExp where
 showS :: Bool -> SExp -> String
 showS top e = case e of
   SAdd x y -> wrap $ "+ " ++ showS False x ++ " " ++ showS False y
-  SFunAbs v b -> wrap $ "\\" ++ v ++ "." ++ showS False b
+  SFunAbs v b -> wrap $ "\\ " ++ v ++ " . " ++ showS False b
   SFunApp x y -> wrap $ showS False x ++ " " ++ showS False y
   SFunPred x -> wrap $ "fun? " ++ showS False x
   SH t e -> wrap $ "SH " ++ showT False t ++ " " ++ showH False e
